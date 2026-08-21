@@ -2,7 +2,7 @@
 <html lang="uk" class="h-full bg-slate-100">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Графік чергувань інтернів</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -33,16 +33,21 @@
     <style>
         :root {
             --num-col-width: 32px;
-            --name-col-width: 240px;
+            --name-col-width: 230px;
             --phone-col-width: 110px;
         }
 
-        /* Responsive overrides for mobile screens (<640px) */
-        @media (max-width: 640px) {
+        /* Mobile specific overrides (<640px) */
+        @media (max-width: 639px) {
             :root {
-                --num-col-width: 26px !important;
-                --name-col-width: 135px !important;
-                --phone-col-width: 85px !important;
+                --num-col-width: 24px !important;
+                --name-col-width: 125px !important;
+                --phone-col-width: 80px !important;
+            }
+
+            /* Compact mode on mobile vertical screens */
+            .compact-mode {
+                --name-col-width: 95px !important;
             }
 
             .sticky-col-name input, .sticky-col-phone input {
@@ -52,16 +57,25 @@
             }
 
             .cell-slot, .dept-cell-slot {
-                min-width: 26px !important;
-                font-size: 10px !important;
+                min-width: 28px !important;
+                font-size: 11px !important;
             }
 
             .day-col-header {
-                min-width: 26px !important;
+                min-width: 28px !important;
             }
         }
 
-        /* Custom scrollbars for matrix view */
+        /* Hide scrollbars for slick mobile touch horizontal scrolling */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Desktop custom scrollbars */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -111,7 +125,7 @@
             z-index: 40;
         }
 
-        /* Prevent text selection during cell dragging */
+        /* Prevent unwanted page drag text selection during mobile touch swipe */
         .no-select {
             user-select: none;
             -webkit-user-select: none;
@@ -125,6 +139,12 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.08);
             border-bottom: 2px solid #2563eb;
             font-weight: 700;
+        }
+
+        .view-mode-btn.active-mode {
+            background-color: #2563eb;
+            color: #ffffff;
+            font-weight: 600;
         }
 
         /* Toast Animation */
@@ -164,34 +184,34 @@
         }
     </style>
 </head>
-<body class="h-full flex flex-col font-sans text-slate-800 bg-slate-100 antialiased no-select min-h-screen">
+<body class="h-full flex flex-col font-sans text-slate-800 bg-slate-100 antialiased no-select min-h-screen pb-16 sm:pb-0">
 
     <!-- TOP APPLICATION HEADER -->
-    <header class="bg-navy-800 text-white shadow-md no-print">
-        <div class="w-full px-2 sm:px-6 py-2.5 flex flex-wrap justify-between items-center gap-2 sm:gap-3">
+    <header class="bg-navy-800 text-white shadow-md no-print sticky top-0 z-40">
+        <div class="w-full px-2 sm:px-6 py-2 flex flex-wrap justify-between items-center gap-2">
             <!-- Title & Badge -->
-            <div class="flex items-center space-x-2 sm:space-x-3">
-                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300 font-bold text-lg sm:text-xl shrink-0">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300 font-bold text-base sm:text-xl shrink-0">
                     <i class="fa-solid fa-calendar-days"></i>
                 </div>
                 <div>
-                    <h1 class="text-base sm:text-xl font-bold tracking-tight text-white flex items-center gap-1.5 sm:gap-2" id="header-month-title">
+                    <h1 class="text-sm sm:text-lg font-bold tracking-tight text-white flex items-center gap-1.5" id="header-month-title">
                         Чергування на Вересень
                         <span class="text-[10px] sm:text-xs font-normal px-1.5 py-0.5 rounded-full bg-blue-500/30 border border-blue-400/30 text-blue-200" id="header-year-badge">
                             2026 р.
                         </span>
                     </h1>
-                    <p class="text-[10px] sm:text-xs text-blue-200/80 hidden xs:block">Інтерактивна система чергувань та кадрового розподілу інтернів</p>
+                    <p class="text-[10px] text-blue-200/80 hidden xs:block">Чергування та розклад інтернів</p>
                 </div>
             </div>
 
             <!-- Month Switcher Controls -->
-            <div class="flex items-center gap-1 bg-slate-900/60 p-1 sm:p-1.5 rounded-xl border border-blue-400/20">
-                <button onclick="changeMonth(-1)" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-500/20 hover:bg-blue-500/40 text-blue-200 transition flex items-center justify-center" title="Попередній місяць">
+            <div class="flex items-center gap-1 bg-slate-900/80 p-1 rounded-xl border border-blue-400/20 shadow-inner">
+                <button onclick="changeMonth(-1)" class="w-7 h-7 rounded-lg bg-blue-500/20 hover:bg-blue-500/40 active:scale-95 text-blue-200 transition flex items-center justify-center" title="Попередній місяць">
                     <i class="fa-solid fa-chevron-left text-xs"></i>
                 </button>
                 <div class="flex items-center gap-1">
-                    <select id="month-select" onchange="onMonthSelectChange()" class="bg-slate-800 text-white font-semibold text-xs sm:text-sm py-1 px-1.5 sm:px-2 rounded-lg border border-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer">
+                    <select id="month-select" onchange="onMonthSelectChange()" class="bg-slate-800 text-white font-semibold text-xs py-1 px-1.5 rounded-lg border border-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer">
                         <option value="1">Січ</option>
                         <option value="2">Лют</option>
                         <option value="3">Бер</option>
@@ -205,29 +225,29 @@
                         <option value="11">Лис</option>
                         <option value="12">Гру</option>
                     </select>
-                    <select id="year-select" onchange="onMonthSelectChange()" class="bg-slate-800 text-white font-semibold text-xs sm:text-sm py-1 px-1 rounded-lg border border-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer">
+                    <select id="year-select" onchange="onMonthSelectChange()" class="bg-slate-800 text-white font-semibold text-xs py-1 px-1 rounded-lg border border-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer">
                         <option value="2025">2025</option>
                         <option value="2026" selected>2026</option>
                         <option value="2027">2027</option>
                         <option value="2028">2028</option>
                     </select>
                 </div>
-                <button onclick="changeMonth(1)" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-500/20 hover:bg-blue-500/40 text-blue-200 transition flex items-center justify-center" title="Наступний місяць">
+                <button onclick="changeMonth(1)" class="w-7 h-7 rounded-lg bg-blue-500/20 hover:bg-blue-500/40 active:scale-95 text-blue-200 transition flex items-center justify-center" title="Наступний місяць">
                     <i class="fa-solid fa-chevron-right text-xs"></i>
                 </button>
             </div>
 
             <!-- Header Action Buttons -->
-            <div class="flex items-center flex-wrap gap-1.5 sm:gap-2 text-xs sm:text-sm">
-                <button onclick="openExportModal()" class="px-2.5 py-1.5 rounded-lg bg-rose-700 hover:bg-rose-800 text-white font-medium transition flex items-center gap-1 border border-rose-600 shadow-sm" title="Експорт поточного місяця у PDF або CSV">
+            <div class="flex items-center gap-1.5 text-xs">
+                <button onclick="openExportModal()" class="px-2.5 py-1.5 rounded-lg bg-rose-700 hover:bg-rose-800 active:scale-95 text-white font-medium transition flex items-center gap-1 border border-rose-600 shadow-sm">
                     <i class="fa-solid fa-file-pdf text-xs text-rose-200"></i>
                     <span>Експорт</span>
                 </button>
-                <button onclick="autoFillWeekdaysAvailable()" class="px-2.5 py-1.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-700 text-emerald-100 font-medium transition flex items-center gap-1 border border-emerald-600" title="Встановити доступність '+' для всіх у будні дні">
+                <button onclick="autoFillWeekdaysAvailable()" class="hidden sm:flex px-2.5 py-1.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-700 active:scale-95 text-emerald-100 font-medium transition items-center gap-1 border border-emerald-600">
                     <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
-                    <span class="hidden md:inline">Заповнити доступність</span>
+                    <span>Заповнити будні</span>
                 </button>
-                <button onclick="showResetConfirmation()" class="px-2.5 py-1.5 rounded-lg bg-rose-900/60 hover:bg-rose-800 text-rose-200 font-medium transition flex items-center gap-1 border border-rose-700/50">
+                <button onclick="showResetConfirmation()" class="px-2 py-1.5 rounded-lg bg-rose-900/60 hover:bg-rose-800 active:scale-95 text-rose-200 font-medium transition flex items-center gap-1 border border-rose-700/50">
                     <i class="fa-solid fa-rotate-right text-xs"></i>
                     <span class="hidden md:inline">Скинути</span>
                 </button>
@@ -235,66 +255,104 @@
         </div>
     </header>
 
-    <!-- TAB NAVIGATION BAR -->
-    <nav class="bg-slate-200 border-b border-slate-300 px-2 sm:px-6 py-1 no-print overflow-x-auto">
-        <div class="flex items-center gap-1.5 whitespace-nowrap">
-            <button id="tab-btn-matrix" onclick="switchTab('matrix')" class="tab-btn active-tab px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
+    <!-- TAB NAVIGATION & MOBILE VIEW MODES BAR -->
+    <nav class="bg-slate-200 border-b border-slate-300 px-2 sm:px-6 py-1.5 no-print flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-1.5">
+        <!-- Duty Tab Switcher -->
+        <div class="flex items-center gap-1 overflow-x-auto no-scrollbar">
+            <button id="tab-btn-matrix" onclick="switchTab('matrix')" class="tab-btn active-tab px-2.5 sm:px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0">
                 <i class="fa-solid fa-table-cells text-blue-600"></i>
                 <span>Основний графік</span>
-                <span class="px-1.5 py-0.5 text-[10px] bg-blue-100 text-blue-800 rounded-full font-bold" id="tab-interns-count-badge">13</span>
+                <span class="px-1.5 py-0.2 text-[10px] bg-blue-100 text-blue-800 rounded-full font-bold" id="tab-interns-count-badge">13</span>
             </button>
-            <button id="tab-btn-dept" onclick="switchTab('dept')" class="tab-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
+            <button id="tab-btn-dept" onclick="switchTab('dept')" class="tab-btn px-2.5 sm:px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0">
                 <i class="fa-solid fa-hospital-user text-indigo-600"></i>
                 <span>Чергові по кафедрі</span>
-                <span class="px-1.5 py-0.5 text-[10px] bg-indigo-100 text-indigo-800 rounded-full font-bold" id="tab-dept-count-badge">13</span>
+                <span class="px-1.5 py-0.2 text-[10px] bg-indigo-100 text-indigo-800 rounded-full font-bold" id="tab-dept-count-badge">13</span>
+            </button>
+        </div>
+
+        <!-- View Display Mode Switcher (Ideal for Mobile Vertical Screens) -->
+        <div class="flex items-center bg-slate-300/80 p-0.5 rounded-lg text-xs self-end sm:self-auto border border-slate-300">
+            <button onclick="setMobileViewMode('table')" id="view-mode-table" class="view-mode-btn active-mode px-2 py-1 rounded-md transition flex items-center gap-1 text-[11px]">
+                <i class="fa-solid fa-table-list"></i>
+                <span>Таблиця</span>
+            </button>
+            <button onclick="setMobileViewMode('days')" id="view-mode-days" class="view-mode-btn px-2 py-1 rounded-md text-slate-700 transition flex items-center gap-1 text-[11px]">
+                <i class="fa-solid fa-calendar-day"></i>
+                <span>По днях</span>
+            </button>
+            <button onclick="setMobileViewMode('interns')" id="view-mode-interns" class="view-mode-btn px-2 py-1 rounded-md text-slate-700 transition flex items-center gap-1 text-[11px]">
+                <i class="fa-solid fa-user-gear"></i>
+                <span>По інтернах</span>
             </button>
         </div>
     </nav>
 
     <!-- MAIN CONTENT CONTAINER -->
-    <main class="flex-1 w-full p-1.5 sm:p-4 flex flex-col gap-3 sm:gap-4">
+    <main class="flex-1 w-full p-1.5 sm:p-4 flex flex-col gap-2.5 sm:gap-4 max-w-full">
 
         <!-- TAB 1: MAIN MATRIX SCHEDULE -->
-        <div id="tab-content-matrix" class="flex flex-col gap-3 sm:gap-4">
+        <div id="tab-content-matrix" class="flex flex-col gap-2.5 sm:gap-4">
 
             <!-- Control Bar & Brush Selector -->
-            <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-2.5 sm:p-4 no-print flex flex-col md:flex-row justify-between items-stretch md:items-center gap-2.5">
-                <!-- Tool Picker (Touch Scrollable) -->
+            <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-2 sm:p-3.5 no-print flex flex-col md:flex-row justify-between items-stretch md:items-center gap-2">
+                <!-- Tool Picker (Touch Horizontal Scrollable) -->
                 <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 w-full no-scrollbar">
-                    <span class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500 shrink-0 flex items-center gap-1">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 shrink-0 flex items-center gap-1">
                         <i class="fa-solid fa-paint-brush text-blue-600"></i> Інструмент:
                     </span>
                     <div class="flex items-center gap-1 shrink-0" id="tool-picker">
-                        <button data-tool="" class="tool-btn active px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border transition shrink-0">
-                            <span class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-slate-400 bg-white inline-block"></span>
+                        <button data-tool="" class="tool-btn active px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border transition shrink-0">
+                            <span class="w-2.5 h-2.5 rounded-full border border-slate-400 bg-white inline-block"></span>
                             <span>Очистити</span>
                         </button>
-                        <button data-tool="+" class="tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition shrink-0">
-                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                        <button data-tool="+" class="tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition shrink-0">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
                             <span>[ + ] Може</span>
                         </button>
-                        <button data-tool="Ч" class="tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-blue-400 bg-blue-600 text-white hover:bg-blue-700 transition shrink-0">
-                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-white inline-block"></span>
+                        <button data-tool="Ч" class="tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-blue-400 bg-blue-600 text-white hover:bg-blue-700 transition shrink-0">
+                            <span class="w-2 h-2 rounded-full bg-white inline-block"></span>
                             <span>[ Ч ] Чергування</span>
                         </button>
-                        <button data-tool="Н" class="tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-purple-400 bg-purple-600 text-white hover:bg-purple-700 transition shrink-0">
-                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-white inline-block"></span>
+                        <button data-tool="Н" class="tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-purple-400 bg-purple-600 text-white hover:bg-purple-700 transition shrink-0">
+                            <span class="w-2 h-2 rounded-full bg-white inline-block"></span>
                             <span>[ Н ] Нічна зміна</span>
                         </button>
-                        <button data-tool="В" class="tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-amber-300 bg-amber-100 text-amber-900 hover:bg-amber-200 transition shrink-0">
-                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-500 inline-block"></span>
+                        <button data-tool="В" class="tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-amber-300 bg-amber-100 text-amber-900 hover:bg-amber-200 transition shrink-0">
+                            <span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
                             <span>[ В ] Вихідний</span>
                         </button>
-                        <button data-tool="Х" class="tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-rose-300 bg-rose-100 text-rose-900 hover:bg-rose-200 transition shrink-0">
-                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-rose-600 inline-block"></span>
+                        <button data-tool="Х" class="tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-rose-300 bg-rose-100 text-rose-900 hover:bg-rose-200 transition shrink-0">
+                            <span class="w-2 h-2 rounded-full bg-rose-600 inline-block"></span>
                             <span>[ Х ] Хворий</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mobile Quick Actions & Compact Name Toggle -->
+                <div class="flex items-center justify-between sm:justify-end gap-1.5 border-t md:border-t-0 pt-1.5 md:pt-0 border-slate-100 text-xs shrink-0">
+                    <button onclick="toggleCompactNames()" id="btn-toggle-compact" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition flex items-center gap-1 text-[11px]" title="Зменшити ширину ПІБ для вертикальних екранів">
+                        <i class="fa-solid fa-compress text-blue-600"></i>
+                        <span id="compact-toggle-text">Скоротити ПІБ</span>
+                    </button>
+                    
+                    <!-- Quick Horizontal Scroll Controls for Mobile Tables -->
+                    <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                        <button onclick="scrollMatrix(-200)" class="px-2 py-0.5 bg-white rounded border border-slate-300 text-slate-700 font-bold active:bg-slate-200" title="Прокрутити вліво">
+                            ◄ 7д
+                        </button>
+                        <button onclick="scrollMatrix(0)" class="px-1.5 py-0.5 bg-white rounded border border-slate-300 text-slate-700 text-[10px] active:bg-slate-200" title="Початок">
+                            Сьогодні
+                        </button>
+                        <button onclick="scrollMatrix(200)" class="px-2 py-0.5 bg-white rounded border border-slate-300 text-slate-700 font-bold active:bg-slate-200" title="Прокрутити вправо">
+                            7д ►
                         </button>
                     </div>
                 </div>
             </section>
 
-            <!-- MATRIX TABLE CONTAINER -->
-            <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col print-table-container">
+            <!-- MATRIX TABLE CONTAINER (MODE 1: TABLE) -->
+            <section id="matrix-table-container-wrapper" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col print-table-container">
                 <div class="overflow-x-auto relative" id="matrix-scroll-container">
                     <table class="w-full table-fixed border-collapse text-xs text-center" id="schedule-table">
                         <thead>
@@ -309,10 +367,10 @@
                             <!-- Row 2: Weekdays -->
                             <tr class="bg-slate-700 text-slate-200 divide-x divide-slate-600 font-medium text-[11px] sticky-header" style="top:33px;">
                                 <th class="sticky-corner bg-slate-700 border-b border-slate-600 sticky-col-num"></th>
-                                <th class="sticky-col-name bg-slate-700 border-b border-slate-600 text-left px-2 py-1 text-slate-300 font-normal italic flex justify-between items-center gap-1">
-                                    <span id="interns-count-text">13 осіб у списку</span>
-                                    <button onclick="openAddInternModal()" class="text-[10px] bg-blue-500/40 hover:bg-blue-500/60 text-white px-1.5 py-0.5 rounded font-medium border border-blue-400/30 transition flex items-center gap-1 no-print">
-                                        <i class="fa-solid fa-user-plus text-[9px]"></i> + Інтерн
+                                <th class="sticky-col-name bg-slate-700 border-b border-slate-600 text-left px-1.5 py-1 text-slate-300 font-normal italic flex justify-between items-center gap-1">
+                                    <span id="interns-count-text">13 осіб</span>
+                                    <button onclick="openAddInternModal()" class="text-[10px] bg-blue-500/40 hover:bg-blue-500/60 text-white px-1 py-0.5 rounded font-medium border border-blue-400/30 transition flex items-center gap-0.5 no-print">
+                                        <i class="fa-solid fa-user-plus text-[9px]"></i> +Інтерн
                                     </button>
                                 </th>
                                 <th id="weekday-headers-anchor" class="hidden"></th>
@@ -336,81 +394,157 @@
                 </div>
             </section>
 
+            <!-- MOBILE DAY VIEW CONTAINER (MODE 2: DAYS) -->
+            <section id="mobile-days-container" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-3 flex-col gap-3">
+                <div class="flex items-center justify-between border-b pb-2">
+                    <h2 class="font-bold text-sm text-slate-800 flex items-center gap-1.5">
+                        <i class="fa-solid fa-calendar-day text-blue-600"></i>
+                        <span>Оберіть день місяця:</span>
+                    </h2>
+                    <span id="mobile-selected-day-badge" class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-extrabold text-xs">
+                        1 Вересня
+                    </span>
+                </div>
+
+                <!-- Date Picker Buttons Strip -->
+                <div class="flex items-center gap-1 overflow-x-auto pb-2 no-scrollbar" id="mobile-day-picker-strip">
+                    <!-- Day Buttons 1..31 -->
+                </div>
+
+                <!-- Intern List for Selected Day -->
+                <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-200 flex flex-col gap-2">
+                    <div class="flex justify-between items-center text-xs font-semibold text-slate-600 px-1">
+                        <span>Чергові інтерни на обрану дату:</span>
+                        <span id="mobile-day-duty-count" class="text-blue-700 font-bold">0 осіб</span>
+                    </div>
+
+                    <div id="mobile-day-interns-list" class="flex flex-col gap-1.5 max-h-[60vh] overflow-y-auto pr-1">
+                        <!-- Dynamic intern status cards -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- MOBILE INTERN VIEW CONTAINER (MODE 3: INTERNS) -->
+            <section id="mobile-interns-container" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-3 flex-col gap-3">
+                <div class="flex flex-col sm:flex-row gap-2 justify-between items-stretch sm:items-center border-b pb-2">
+                    <label class="font-bold text-sm text-slate-800 flex items-center gap-1.5">
+                        <i class="fa-solid fa-user-doctor text-blue-600"></i>
+                        <span>Оберіть інтерна:</span>
+                    </label>
+                    <select id="mobile-intern-select" onchange="renderMobileInternCalendar()" class="bg-slate-100 text-slate-800 font-bold text-xs py-1.5 px-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <!-- Interns Options -->
+                    </select>
+                </div>
+
+                <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-200 flex flex-col gap-2">
+                    <div class="flex justify-between items-center text-xs px-1">
+                        <span class="font-semibold text-slate-600">Графік змін на місяць:</span>
+                        <span id="mobile-intern-shifts-badge" class="font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full">
+                            Всього змін: 0
+                        </span>
+                    </div>
+
+                    <!-- 31-Day Calendar Grid for selected intern -->
+                    <div id="mobile-intern-calendar-grid" class="grid grid-cols-7 gap-1.5 pt-1">
+                        <!-- Day tiles -->
+                    </div>
+                </div>
+            </section>
+
             <!-- STATISTICS CARDS -->
-            <section class="grid grid-cols-1 sm:grid-cols-3 gap-3 no-print">
-                <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-lg font-bold">
+            <section class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 no-print">
+                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-base font-bold shrink-0">
                         <i class="fa-solid fa-user-doctor"></i>
                     </div>
                     <div>
-                        <div class="text-xs text-slate-500 font-medium">Всього інтернів</div>
-                        <div class="text-lg font-bold text-slate-800" id="stat-interns-count">13</div>
+                        <div class="text-[11px] text-slate-500 font-medium">Всього інтернів</div>
+                        <div class="text-base font-bold text-slate-800" id="stat-interns-count">13</div>
                     </div>
                 </div>
 
-                <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-lg font-bold">
+                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-base font-bold shrink-0">
                         <i class="fa-solid fa-clipboard-check"></i>
                     </div>
                     <div>
-                        <div class="text-xs text-slate-500 font-medium">Призначено чергувань</div>
-                        <div class="text-lg font-bold text-slate-800" id="stat-total-shifts">0</div>
+                        <div class="text-[11px] text-slate-500 font-medium">Призначено чергувань</div>
+                        <div class="text-base font-bold text-slate-800" id="stat-total-shifts">0</div>
                     </div>
                 </div>
 
-                <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-bold">
+                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-base font-bold shrink-0">
                         <i class="fa-solid fa-chart-line"></i>
                     </div>
                     <div>
-                        <div class="text-xs text-slate-500 font-medium">Середня кількість змін</div>
-                        <div class="text-lg font-bold text-slate-800" id="stat-avg-shifts">0.0</div>
+                        <div class="text-[11px] text-slate-500 font-medium">Середня кількість змін</div>
+                        <div class="text-base font-bold text-slate-800" id="stat-avg-shifts">0.0</div>
                     </div>
                 </div>
             </section>
 
         </div>
 
-        <!-- TAB 2: DEPARTMENT DUTIES (ЧЕРГОВІ ПО КАФЕДРІ - МАТРИЦЯ) -->
-        <div id="tab-content-dept" class="hidden flex-col gap-3 sm:gap-4">
+        <!-- TAB 2: DEPARTMENT DUTIES (ЧЕРГОВІ ПО КАФЕДРІ) -->
+        <div id="tab-content-dept" class="hidden flex-col gap-2.5 sm:gap-4">
 
-            <!-- Tool Picker & Action Controls Bar -->
-            <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-2.5 sm:p-4 no-print flex flex-col md:flex-row justify-between items-stretch md:items-center gap-2.5">
+            <!-- Tool Picker Bar -->
+            <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-2 sm:p-3.5 no-print flex flex-col md:flex-row justify-between items-stretch md:items-center gap-2">
                 <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 w-full no-scrollbar">
-                    <span class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-indigo-600 shrink-0 flex items-center gap-1">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-indigo-600 shrink-0 flex items-center gap-1">
                         <i class="fa-solid fa-hospital-user"></i> Інструмент:
                     </span>
                     <div class="flex items-center gap-1 shrink-0" id="dept-tool-picker">
-                        <button data-tool="" class="dept-tool-btn active px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border transition shrink-0">
-                            <span class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-slate-400 bg-white inline-block"></span>
+                        <button data-tool="" class="dept-tool-btn active px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border transition shrink-0">
+                            <span class="w-2.5 h-2.5 rounded-full border border-slate-400 bg-white inline-block"></span>
                             <span>Очистити</span>
                         </button>
-                        <button data-tool="+" class="dept-tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition shrink-0">
-                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                        <button data-tool="+" class="dept-tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition shrink-0">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
                             <span>[ + ] Може</span>
                         </button>
-                        <button data-tool="К" class="dept-tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-indigo-400 bg-indigo-600 text-white hover:bg-indigo-700 transition shrink-0">
-                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-white inline-block"></span>
+                        <button data-tool="К" class="dept-tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-indigo-400 bg-indigo-600 text-white hover:bg-indigo-700 transition shrink-0">
+                            <span class="w-2 h-2 rounded-full bg-white inline-block"></span>
                             <span>[ К ] Черговий кафедри</span>
                         </button>
-                        <button data-tool="Н" class="dept-tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-purple-400 bg-purple-600 text-white hover:bg-purple-700 transition shrink-0">
-                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-white inline-block"></span>
+                        <button data-tool="Н" class="dept-tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-purple-400 bg-purple-600 text-white hover:bg-purple-700 transition shrink-0">
+                            <span class="w-2 h-2 rounded-full bg-white inline-block"></span>
                             <span>[ Н ] Нічна зміна</span>
                         </button>
-                        <button data-tool="В" class="dept-tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-amber-300 bg-amber-100 text-amber-900 hover:bg-amber-200 transition shrink-0">
-                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-500 inline-block"></span>
+                        <button data-tool="В" class="dept-tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-amber-300 bg-amber-100 text-amber-900 hover:bg-amber-200 transition shrink-0">
+                            <span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
                             <span>[ В ] Вихідний</span>
                         </button>
-                        <button data-tool="Х" class="dept-tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-rose-300 bg-rose-100 text-rose-900 hover:bg-rose-200 transition shrink-0">
-                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-rose-600 inline-block"></span>
+                        <button data-tool="Х" class="dept-tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-rose-300 bg-rose-100 text-rose-900 hover:bg-rose-200 transition shrink-0">
+                            <span class="w-2 h-2 rounded-full bg-rose-600 inline-block"></span>
                             <span>[ Х ] Хворий</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between sm:justify-end gap-1.5 border-t md:border-t-0 pt-1.5 md:pt-0 border-slate-100 text-xs shrink-0">
+                    <button onclick="toggleCompactNames()" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition flex items-center gap-1 text-[11px]">
+                        <i class="fa-solid fa-compress text-indigo-600"></i>
+                        <span>Скоротити ПІБ</span>
+                    </button>
+                    
+                    <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                        <button onclick="scrollDeptMatrix(-200)" class="px-2 py-0.5 bg-white rounded border border-slate-300 text-slate-700 font-bold active:bg-slate-200">
+                            ◄ 7д
+                        </button>
+                        <button onclick="scrollDeptMatrix(0)" class="px-1.5 py-0.5 bg-white rounded border border-slate-300 text-slate-700 text-[10px] active:bg-slate-200">
+                            Сьогодні
+                        </button>
+                        <button onclick="scrollDeptMatrix(200)" class="px-2 py-0.5 bg-white rounded border border-slate-300 text-slate-700 font-bold active:bg-slate-200">
+                            7д ►
                         </button>
                     </div>
                 </div>
             </section>
 
             <!-- DEPARTMENT MATRIX TABLE CONTAINER -->
-            <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col print-table-container">
+            <section id="dept-table-container-wrapper" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col print-table-container">
                 <div class="overflow-x-auto relative" id="dept-matrix-scroll-container">
                     <table class="w-full table-fixed border-collapse text-xs text-center" id="dept-schedule-table">
                         <thead>
@@ -426,13 +560,13 @@
                             <!-- Row 2: Weekdays -->
                             <tr class="bg-slate-700 text-slate-200 divide-x divide-slate-600 font-medium text-[11px] sticky-header" style="top:33px;">
                                 <th class="sticky-corner bg-slate-700 border-b border-slate-600 sticky-col-num"></th>
-                                <th class="sticky-col-name bg-slate-700 border-b border-slate-600 text-left px-2 py-1 text-slate-300 font-normal italic flex justify-between items-center gap-1">
+                                <th class="sticky-col-name bg-slate-700 border-b border-slate-600 text-left px-1.5 py-1 text-slate-300 font-normal italic flex justify-between items-center gap-1">
                                     <span>Чергові по кафедрі</span>
-                                    <button onclick="openAddInternModal()" class="text-[10px] bg-indigo-500/40 hover:bg-indigo-500/60 text-white px-1.5 py-0.5 rounded font-medium border border-indigo-400/30 transition flex items-center gap-1 no-print">
-                                        <i class="fa-solid fa-user-plus text-[9px]"></i> + Інтерн
+                                    <button onclick="openAddInternModal()" class="text-[10px] bg-indigo-500/40 hover:bg-indigo-500/60 text-white px-1 py-0.5 rounded font-medium border border-indigo-400/30 transition flex items-center gap-0.5 no-print">
+                                        <i class="fa-solid fa-user-plus text-[9px]"></i> +Інтерн
                                     </button>
                                 </th>
-                                <th class="sticky-col-phone bg-slate-700 border-b border-slate-600 text-left px-2 py-1 text-slate-300 font-normal italic">
+                                <th class="sticky-col-phone bg-slate-700 border-b border-slate-600 text-left px-1 py-1 text-slate-300 font-normal italic">
                                     <span>Контакт</span>
                                 </th>
                                 <th id="dept-weekday-headers-anchor" class="hidden"></th>
@@ -460,13 +594,39 @@
 
     </main>
 
+    <!-- MOBILE BOTTOM FLOATING TOOL DOCK -->
+    <div class="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-300 p-1.5 shadow-lg flex items-center justify-around sm:hidden no-print">
+        <span class="text-[10px] font-bold text-slate-500 uppercase">Пензель:</span>
+        <button onclick="setMobileActiveTool('')" id="mb-tool-clear" class="px-2 py-1 rounded text-xs font-bold border bg-white border-slate-300">
+            Очистити
+        </button>
+        <button onclick="setMobileActiveTool('+')" id="mb-tool-plus" class="px-2 py-1 rounded text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+            +
+        </button>
+        <button onclick="setMobileActiveTool('Ч')" id="mb-tool-ch" class="px-2 py-1 rounded text-xs font-bold bg-blue-600 text-white shadow">
+            Ч
+        </button>
+        <button onclick="setMobileActiveTool('К')" id="mb-tool-k" class="px-2 py-1 rounded text-xs font-bold bg-indigo-600 text-white shadow">
+            К
+        </button>
+        <button onclick="setMobileActiveTool('Н')" id="mb-tool-n" class="px-2 py-1 rounded text-xs font-bold bg-purple-600 text-white shadow">
+            Н
+        </button>
+        <button onclick="setMobileActiveTool('В')" id="mb-tool-v" class="px-2 py-1 rounded text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+            В
+        </button>
+        <button onclick="setMobileActiveTool('Х')" id="mb-tool-x" class="px-2 py-1 rounded text-xs font-bold bg-rose-100 text-rose-900 border border-rose-300">
+            Х
+        </button>
+    </div>
+
     <!-- MODALS & DIALOGS -->
 
     <!-- Export / Print Modal -->
-    <div id="export-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="export-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-3">
         <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-200">
-            <div class="bg-navy-800 text-white px-5 py-4 flex justify-between items-center">
-                <h3 class="font-bold text-lg flex items-center gap-2">
+            <div class="bg-navy-800 text-white px-4 py-3 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2">
                     <i class="fa-solid fa-file-export text-blue-400"></i>
                     Експорт та Друк
                 </h3>
@@ -474,39 +634,39 @@
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
-            <div class="p-5 flex flex-col gap-4">
-                <p class="text-sm text-slate-600">
+            <div class="p-4 flex flex-col gap-3">
+                <p class="text-xs text-slate-600">
                     Оберіть потрібний документ та формат для обраного місяця:
                 </p>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button onclick="exportToPDF()" class="p-3.5 rounded-xl border border-slate-200 hover:border-rose-500 hover:bg-rose-50/50 transition flex flex-col items-center text-center gap-1.5 group">
-                        <i class="fa-solid fa-file-pdf text-2xl text-rose-600 group-hover:scale-110 transition"></i>
-                        <span class="font-semibold text-xs sm:text-sm text-slate-800">PDF: Основний графік</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <button onclick="exportToPDF()" class="p-3 rounded-xl border border-slate-200 hover:border-rose-500 hover:bg-rose-50/50 transition flex flex-col items-center text-center gap-1 group">
+                        <i class="fa-solid fa-file-pdf text-xl text-rose-600 group-hover:scale-110 transition"></i>
+                        <span class="font-semibold text-xs text-slate-800">PDF: Основний графік</span>
                         <span class="text-[10px] text-slate-500">1 сторінка A4 (Альбомна)</span>
                     </button>
 
-                    <button onclick="exportDeptToPDF()" class="p-3.5 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition flex flex-col items-center text-center gap-1.5 group">
-                        <i class="fa-solid fa-hospital-user text-2xl text-indigo-600 group-hover:scale-110 transition"></i>
-                        <span class="font-semibold text-xs sm:text-sm text-slate-800">PDF: Чергові по кафедрі</span>
+                    <button onclick="exportDeptToPDF()" class="p-3 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition flex flex-col items-center text-center gap-1 group">
+                        <i class="fa-solid fa-hospital-user text-xl text-indigo-600 group-hover:scale-110 transition"></i>
+                        <span class="font-semibold text-xs text-slate-800">PDF: Чергові по кафедрі</span>
                         <span class="text-[10px] text-slate-500">1 сторінка A4 (Альбомна)</span>
                     </button>
 
-                    <button onclick="window.print()" class="p-3.5 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition flex flex-col items-center text-center gap-1.5 group">
-                        <i class="fa-solid fa-print text-2xl text-blue-600 group-hover:scale-110 transition"></i>
-                        <span class="font-semibold text-xs sm:text-sm text-slate-800">Друк браузера</span>
+                    <button onclick="window.print()" class="p-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition flex flex-col items-center text-center gap-1 group">
+                        <i class="fa-solid fa-print text-xl text-blue-600 group-hover:scale-110 transition"></i>
+                        <span class="font-semibold text-xs text-slate-800">Друк браузера</span>
                         <span class="text-[10px] text-slate-500">Прямий вивід на принтер</span>
                     </button>
 
-                    <button onclick="exportToCSV()" class="p-3.5 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 transition flex flex-col items-center text-center gap-1.5 group">
-                        <i class="fa-solid fa-file-csv text-2xl text-emerald-600 group-hover:scale-110 transition"></i>
-                        <span class="font-semibold text-xs sm:text-sm text-slate-800">Експорт в Excel / CSV</span>
+                    <button onclick="exportToCSV()" class="p-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 transition flex flex-col items-center text-center gap-1 group">
+                        <i class="fa-solid fa-file-csv text-xl text-emerald-600 group-hover:scale-110 transition"></i>
+                        <span class="font-semibold text-xs text-slate-800">Експорт в Excel / CSV</span>
                         <span class="text-[10px] text-slate-500">Для редагування в Excel</span>
                     </button>
                 </div>
             </div>
-            <div class="bg-slate-100 px-5 py-3 border-t border-slate-200 flex justify-end">
-                <button onclick="closeExportModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium text-xs rounded-lg transition">
+            <div class="bg-slate-100 px-4 py-2.5 border-t border-slate-200 flex justify-end">
+                <button onclick="closeExportModal()" class="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium text-xs rounded-lg transition">
                     Закрити
                 </button>
             </div>
@@ -514,24 +674,24 @@
     </div>
 
     <!-- Confirm Reset Modal -->
-    <div id="reset-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="reset-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-3">
         <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
-            <div class="p-5 flex items-start gap-4">
-                <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 font-bold text-lg">
+            <div class="p-4 flex items-start gap-3">
+                <div class="w-9 h-9 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 font-bold text-base">
                     <i class="fa-solid fa-triangle-exclamation"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-base text-slate-900">Скинути всі записи?</h3>
+                    <h3 class="font-bold text-sm text-slate-900">Скинути всі записи?</h3>
                     <p class="text-xs text-slate-600 mt-1">
-                        Це дія очистить усі відмітки про чергування у поточному місяці. Ви впевнені?
+                        Дія очистить усі відмітки про чергування у поточному місяці. Ви впевнені?
                     </p>
                 </div>
             </div>
-            <div class="bg-slate-100 px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
-                <button onclick="closeResetModal()" class="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium text-xs rounded-lg transition">
+            <div class="bg-slate-100 px-4 py-2.5 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="closeResetModal()" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium text-xs rounded-lg transition">
                     Скасувати
                 </button>
-                <button onclick="confirmResetAll()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs rounded-lg transition shadow-sm">
+                <button onclick="confirmResetAll()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs rounded-lg transition shadow-sm">
                     Так, скинути
                 </button>
             </div>
@@ -539,54 +699,54 @@
     </div>
 
     <!-- Add Intern Modal -->
-    <div id="add-intern-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="add-intern-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-3">
         <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
-            <div class="bg-navy-800 text-white px-5 py-4 flex justify-between items-center">
-                <h3 class="font-bold text-base flex items-center gap-2">
+            <div class="bg-navy-800 text-white px-4 py-3 flex justify-between items-center">
+                <h3 class="font-bold text-sm flex items-center gap-2">
                     <i class="fa-solid fa-user-plus text-blue-400"></i> Додати інтерна
                 </h3>
                 <button onclick="closeAddInternModal()" class="text-slate-300 hover:text-white">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
-            <div class="p-5 space-y-3">
+            <div class="p-4 space-y-3">
                 <label class="block text-xs font-semibold text-slate-700">ПІБ нового інтерна (Прізвище у CAPS, Ім'я По батькові):</label>
                 <input type="text" id="new-intern-name-input" placeholder="Наприклад: ШЕВЧЕНКО Ольга Іванівна" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <label class="block text-xs font-semibold text-slate-700">Номер телефону:</label>
                 <input type="text" id="new-intern-phone-input" placeholder="0XXXXXXXXX" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
-            <div class="bg-slate-100 px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
-                <button onclick="closeAddInternModal()" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 font-medium text-xs rounded-lg">Скасувати</button>
-                <button onclick="submitAddIntern()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-lg shadow-sm">Додати</button>
+            <div class="bg-slate-100 px-4 py-2.5 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="closeAddInternModal()" class="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 font-medium text-xs rounded-lg">Скасувати</button>
+                <button onclick="submitAddIntern()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-lg shadow-sm">Додати</button>
             </div>
         </div>
     </div>
 
     <!-- Delete Intern Confirm Modal -->
-    <div id="delete-intern-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="delete-intern-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-3">
         <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
-            <div class="p-5 flex items-start gap-4">
-                <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 font-bold text-lg">
+            <div class="p-4 flex items-start gap-3">
+                <div class="w-9 h-9 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 font-bold text-base">
                     <i class="fa-solid fa-trash-can"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-base text-slate-900">Видалити інтерна?</h3>
+                    <h3 class="font-bold text-sm text-slate-900">Видалити інтерна?</h3>
                     <p class="text-xs text-slate-600 mt-1" id="delete-intern-name-text"></p>
                 </div>
             </div>
-            <div class="bg-slate-100 px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
-                <button onclick="closeDeleteInternModal()" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 font-medium text-xs rounded-lg">Скасувати</button>
-                <button onclick="confirmDeleteIntern()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs rounded-lg shadow-sm">Видалити</button>
+            <div class="bg-slate-100 px-4 py-2.5 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="closeDeleteInternModal()" class="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 font-medium text-xs rounded-lg">Скасувати</button>
+                <button onclick="confirmDeleteIntern()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs rounded-lg shadow-sm">Видалити</button>
             </div>
         </div>
     </div>
 
     <!-- Global Toast Container -->
-    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+    <div id="toast-container" class="fixed bottom-14 sm:bottom-4 right-3 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
-        // Formatter: Only Surname in UPPERCASE, First Name & Patronymic in Title Case
+        // Formatter: Surname in UPPERCASE, First Name & Patronymic in Title Case
         function formatInternName(rawName) {
             if (!rawName) return '';
             const parts = rawName.trim().split(/\s+/);
@@ -599,6 +759,17 @@
             });
             
             return [surname, ...rest].join(' ');
+        }
+
+        // Shorten Surname for Mobile Compact Mode (e.g., "ШЕВЧЕНКО Ольга Іванівна" -> "ШЕВЧЕНКО О.І.")
+        function getShortName(fullName) {
+            if (!fullName) return '';
+            const parts = fullName.trim().split(/\s+/);
+            if (parts.length <= 1) return fullName;
+            
+            const surname = parts[0];
+            const initials = parts.slice(1).map(p => p.charAt(0).toUpperCase() + '.').join('');
+            return `${surname} ${initials}`;
         }
 
         // Alphabetically sorted Interns List with formatted surnames
@@ -637,6 +808,10 @@
         let currentYear = 2026;
         let currentMonth = 9; // September
         let activeTab = 'matrix'; // 'matrix' or 'dept'
+        let mobileViewMode = 'table'; // 'table', 'days', 'interns'
+        let selectedMobileDay = 1;
+        let isCompactNames = false;
+        
         let internsList = [...DEFAULT_INTERNS_LIST];
         let internPhones = { ...DEFAULT_INTERN_PHONES };
         let matrixData = {};     // Main matrix schedule
@@ -647,23 +822,269 @@
         let isDeptMouseDown = false;
         let pendingDeleteInternIdx = null;
 
-        // Dynamically calculate and update CSS column width variable for Name Column based on content length
+        // Toggle Compact Names for Mobile Vertical Screens
+        function toggleCompactNames() {
+            isCompactNames = !isCompactNames;
+            const container = document.getElementById('matrix-table-container-wrapper');
+            const btnText = document.getElementById('compact-toggle-text');
+
+            if (isCompactNames) {
+                container?.classList.add('compact-mode');
+                if (btnText) btnText.textContent = 'Повні ПІБ';
+                showToast('Увімкнено скорочений режим ПІБ', 'info');
+            } else {
+                container?.classList.remove('compact-mode');
+                if (btnText) btnText.textContent = 'Скоротити ПІБ';
+            }
+            updateDynamicLayout();
+            renderTableBody();
+            renderDeptTableBody();
+        }
+
+        // Horizontal Scroll helper for Matrix Table on mobile
+        function scrollMatrix(offset) {
+            const container = activeTab === 'matrix' 
+                ? document.getElementById('matrix-scroll-container')
+                : document.getElementById('dept-matrix-scroll-container');
+            if (!container) return;
+
+            if (offset === 0) {
+                container.scrollTo({ left: 0, behavior: 'smooth' });
+            } else {
+                container.scrollBy({ left: offset, behavior: 'smooth' });
+            }
+        }
+
+        // Mobile Display View Mode Switcher ('table' | 'days' | 'interns')
+        function setMobileViewMode(mode) {
+            mobileViewMode = mode;
+            
+            document.querySelectorAll('.view-mode-btn').forEach(btn => btn.classList.remove('active-mode'));
+            document.getElementById(`view-mode-${mode}`)?.classList.add('active-mode');
+
+            const tableWrap = document.getElementById('matrix-table-container-wrapper');
+            const deptTableWrap = document.getElementById('dept-table-container-wrapper');
+            const daysWrap = document.getElementById('mobile-days-container');
+            const internsWrap = document.getElementById('mobile-interns-container');
+
+            if (mode === 'table') {
+                if (activeTab === 'matrix') tableWrap?.classList.remove('hidden');
+                else deptTableWrap?.classList.remove('hidden');
+                daysWrap?.classList.add('hidden');
+                internsWrap?.classList.add('hidden');
+            } else if (mode === 'days') {
+                tableWrap?.classList.add('hidden');
+                deptTableWrap?.classList.add('hidden');
+                daysWrap?.classList.remove('hidden');
+                internsWrap?.classList.add('hidden');
+                renderMobileDayPicker();
+            } else if (mode === 'interns') {
+                tableWrap?.classList.add('hidden');
+                deptTableWrap?.classList.add('hidden');
+                daysWrap?.classList.add('hidden');
+                internsWrap?.classList.remove('hidden');
+                renderMobileInternSelect();
+            }
+        }
+
+        // Render Day Buttons Strip for Mobile Day View
+        function renderMobileDayPicker() {
+            const strip = document.getElementById('mobile-day-picker-strip');
+            if (!strip) return;
+
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            if (selectedMobileDay > daysCount) selectedMobileDay = 1;
+
+            let html = '';
+            for (let day = 1; day <= daysCount; day++) {
+                const isWknd = isWeekendDay(day);
+                const wdName = UA_WEEKDAYS[getDayOfWeekIndex(day)];
+                const isActive = (day === selectedMobileDay);
+
+                const activeClass = isActive 
+                    ? 'bg-blue-600 text-white font-extrabold shadow ring-2 ring-blue-400' 
+                    : isWknd ? 'bg-rose-100 text-rose-800' : 'bg-white text-slate-700 border border-slate-200';
+
+                html += `
+                    <button onclick="selectMobileDay(${day})" class="px-3 py-1.5 rounded-lg text-xs flex flex-col items-center shrink-0 transition ${activeClass}">
+                        <span class="text-[9px] opacity-80 uppercase">${wdName}</span>
+                        <span class="font-bold text-sm">${day}</span>
+                    </button>
+                `;
+            }
+            strip.innerHTML = html;
+            renderMobileDayInternsList();
+        }
+
+        function selectMobileDay(day) {
+            selectedMobileDay = day;
+            renderMobileDayPicker();
+        }
+
+        function renderMobileDayInternsList() {
+            const badge = document.getElementById('mobile-selected-day-badge');
+            const monthName = MONTH_NAMES_UA[currentMonth - 1];
+            const wdName = UA_WEEKDAYS[getDayOfWeekIndex(selectedMobileDay)];
+            if (badge) badge.textContent = `${selectedMobileDay} ${monthName} (${wdName})`;
+
+            const container = document.getElementById('mobile-day-interns-list');
+            if (!container) return;
+
+            const monthKey = getMonthKey();
+            const isDept = (activeTab === 'dept');
+            const targetData = isDept ? deptMatrixData : matrixData;
+            
+            let dutyCount = 0;
+            let html = '';
+
+            internsList.forEach((name, idx) => {
+                const status = (targetData[monthKey] && targetData[monthKey][idx]) ? targetData[monthKey][idx][selectedMobileDay] || '' : '';
+                if (status === 'Ч' || status === 'Н' || status === 'К') dutyCount++;
+
+                const displayName = isCompactNames ? getShortName(name) : name;
+
+                html += `
+                    <div class="bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex items-center justify-between gap-2">
+                        <div class="truncate">
+                            <div class="font-bold text-xs text-slate-800 truncate">${displayName}</div>
+                            <div class="text-[10px] text-slate-500">${internPhones[name] || 'без телефону'}</div>
+                        </div>
+
+                        <!-- Status Quick Pills -->
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button onclick="setCellStatusFromMobile(${idx}, ${selectedMobileDay}, '')" class="w-6 h-6 text-[10px] rounded font-bold border ${status===''?'bg-slate-700 text-white':'bg-slate-100 text-slate-500'}">Ø</button>
+                            <button onclick="setCellStatusFromMobile(${idx}, ${selectedMobileDay}, '+')" class="w-6 h-6 text-[10px] rounded font-bold border ${status==='+'?'bg-emerald-600 text-white':'bg-emerald-50 text-emerald-700 border-emerald-200'}">+</button>
+                            ${!isDept ? `
+                                <button onclick="setCellStatusFromMobile(${idx}, ${selectedMobileDay}, 'Ч')" class="w-6 h-6 text-[10px] rounded font-bold border ${status==='Ч'?'bg-blue-600 text-white':'bg-blue-50 text-blue-700 border-blue-200'}">Ч</button>
+                            ` : `
+                                <button onclick="setCellStatusFromMobile(${idx}, ${selectedMobileDay}, 'К')" class="w-6 h-6 text-[10px] rounded font-bold border ${status==='К'?'bg-indigo-600 text-white':'bg-indigo-50 text-indigo-700 border-indigo-200'}">К</button>
+                            `}
+                            <button onclick="setCellStatusFromMobile(${idx}, ${selectedMobileDay}, 'Н')" class="w-6 h-6 text-[10px] rounded font-bold border ${status==='Н'?'bg-purple-600 text-white':'bg-purple-50 text-purple-700 border-purple-200'}">Н</button>
+                            <button onclick="setCellStatusFromMobile(${idx}, ${selectedMobileDay}, 'В')" class="w-6 h-6 text-[10px] rounded font-bold border ${status==='В'?'bg-amber-500 text-white':'bg-amber-50 text-amber-800 border-amber-200'}">В</button>
+                            <button onclick="setCellStatusFromMobile(${idx}, ${selectedMobileDay}, 'Х')" class="w-6 h-6 text-[10px] rounded font-bold border ${status==='Х'?'bg-rose-600 text-white':'bg-rose-50 text-rose-700 border-rose-200'}">Х</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            const countEl = document.getElementById('mobile-day-duty-count');
+            if (countEl) countEl.textContent = `${dutyCount} чергових`;
+        }
+
+        function setCellStatusFromMobile(idx, day, val) {
+            const monthKey = getMonthKey();
+            if (activeTab === 'dept') {
+                deptMatrixData[monthKey][idx][day] = val;
+                updateDeptRowAndTotals(idx, day);
+            } else {
+                matrixData[monthKey][idx][day] = val;
+                updateRowAndTotals(idx, day);
+            }
+            saveData();
+            renderMobileDayInternsList();
+        }
+
+        // Render Mobile Intern Selector and Grid
+        function renderMobileInternSelect() {
+            const select = document.getElementById('mobile-intern-select');
+            if (!select) return;
+
+            select.innerHTML = internsList.map((name, idx) => 
+                `<option value="${idx}">${name}</option>`
+            ).join('');
+
+            renderMobileInternCalendar();
+        }
+
+        function renderMobileInternCalendar() {
+            const select = document.getElementById('mobile-intern-select');
+            if (!select) return;
+
+            const idx = parseInt(select.value) || 0;
+            const grid = document.getElementById('mobile-intern-calendar-grid');
+            if (!grid) return;
+
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const monthKey = getMonthKey();
+            const isDept = (activeTab === 'dept');
+            const targetData = isDept ? deptMatrixData : matrixData;
+
+            let shiftsCount = 0;
+            let html = '';
+
+            for (let day = 1; day <= daysCount; day++) {
+                const status = (targetData[monthKey] && targetData[monthKey][idx]) ? targetData[monthKey][idx][day] || '' : '';
+                const isWknd = isWeekendDay(day);
+                const wdName = UA_WEEKDAYS[getDayOfWeekIndex(day)];
+
+                if (status === 'Ч' || status === 'Н' || status === 'К') shiftsCount++;
+
+                const colorClass = getCellColorClasses(status, isWknd);
+
+                html += `
+                    <div onclick="cycleInternStatusMobile(${idx}, ${day})" class="p-2 rounded-lg text-center cursor-pointer shadow-sm border border-slate-200 flex flex-col items-center justify-between h-14 ${colorClass}">
+                        <div class="text-[9px] opacity-70">${day} (${wdName})</div>
+                        <div class="font-extrabold text-sm">${status || '-'}</div>
+                    </div>
+                `;
+            }
+
+            grid.innerHTML = html;
+            const badge = document.getElementById('mobile-intern-shifts-badge');
+            if (badge) badge.textContent = `Всього змін: ${shiftsCount}`;
+        }
+
+        function cycleInternStatusMobile(idx, day) {
+            const monthKey = getMonthKey();
+            const isDept = (activeTab === 'dept');
+            const current = isDept ? deptMatrixData[monthKey][idx][day] : matrixData[monthKey][idx][day];
+
+            const mainStatuses = ['', '+', 'Ч', 'Н', 'В', 'Х'];
+            const deptStatuses = ['', '+', 'К', 'Н', 'В', 'Х'];
+            const list = isDept ? deptStatuses : mainStatuses;
+
+            let nextIdx = (list.indexOf(current) + 1) % list.length;
+            const newVal = list[nextIdx];
+
+            if (isDept) {
+                deptMatrixData[monthKey][idx][day] = newVal;
+                updateDeptRowAndTotals(idx, day);
+            } else {
+                matrixData[monthKey][idx][day] = newVal;
+                updateRowAndTotals(idx, day);
+            }
+            saveData();
+            renderMobileInternCalendar();
+        }
+
+        function setMobileActiveTool(tool) {
+            if (activeTab === 'dept') {
+                activeDeptTool = tool;
+            } else {
+                activeTool = tool;
+            }
+            showToast(`Обрано мобільний інструмент: [ ${tool || 'Очистити'} ]`, 'info');
+        }
+
+        // Dynamically update CSS column width variable based on screen size
         function updateDynamicLayout() {
             const isMobile = window.innerWidth < 640;
             if (isMobile) {
-                document.documentElement.style.setProperty('--name-col-width', `135px`);
-                document.documentElement.style.setProperty('--num-col-width', `26px`);
-                document.documentElement.style.setProperty('--phone-col-width', `85px`);
+                const nameWidth = isCompactNames ? '95px' : '125px';
+                document.documentElement.style.setProperty('--name-col-width', nameWidth);
+                document.documentElement.style.setProperty('--num-col-width', `24px`);
+                document.documentElement.style.setProperty('--phone-col-width', `80px`);
                 return;
             }
 
             let maxCharLen = 0;
             internsList.forEach(name => {
-                if (name && name.length > maxCharLen) maxCharLen = name.length;
+                const text = isCompactNames ? getShortName(name) : name;
+                if (text && text.length > maxCharLen) maxCharLen = text.length;
             });
             
-            // Approx 8.5px per character + padding/buttons space (min 220px)
-            const calculatedWidth = Math.max(220, Math.ceil(maxCharLen * 8.5) + 65);
+            const calculatedWidth = Math.max(180, Math.ceil(maxCharLen * 8.5) + 55);
             document.documentElement.style.setProperty('--num-col-width', `32px`);
             document.documentElement.style.setProperty('--name-col-width', `${calculatedWidth}px`);
             document.documentElement.style.setProperty('--phone-col-width', `110px`);
@@ -676,13 +1097,13 @@
             const toast = document.createElement('div');
             const bgClass = type === 'success' ? 'bg-emerald-800 text-white' : 'bg-slate-800 text-white';
             
-            toast.className = `toast-animate px-4 py-2.5 rounded-xl shadow-xl text-xs font-medium flex items-center gap-2 border border-white/10 ${bgClass}`;
+            toast.className = `toast-animate px-3 py-2 rounded-xl shadow-xl text-xs font-medium flex items-center gap-2 border border-white/10 ${bgClass}`;
             toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> <span>${message}</span>`;
             
             container.appendChild(toast);
             setTimeout(() => {
                 toast.remove();
-            }, 3000);
+            }, 2500);
         }
 
         // Tab Switching Handler
@@ -706,6 +1127,9 @@
                 renderDeptHeader();
                 renderDeptTableBody();
             }
+
+            if (mobileViewMode === 'days') renderMobileDayPicker();
+            else if (mobileViewMode === 'interns') renderMobileInternSelect();
         }
 
         // Modal Controls
@@ -854,19 +1278,6 @@
                     }
                 }
             });
-
-            // Pre-fill Sept 2026 department duties if unassigned
-            if (key === '2026-9') {
-                const grabovanIdx = internsList.findIndex(n => n.startsWith("ГРАБОВАН"));
-                const ganzhaIdx = internsList.findIndex(n => n.startsWith("ГАНЖА"));
-                const tsymbalenkoIdx = internsList.findIndex(n => n.startsWith("ЦИМБАЛЕНКО"));
-                const brovenderIdx = internsList.findIndex(n => n.startsWith("БРОВЕНДЕР"));
-
-                if (grabovanIdx !== -1) { for (let d = 1; d <= 4; d++) if (!deptMatrixData[key][grabovanIdx][d]) deptMatrixData[key][grabovanIdx][d] = "К"; }
-                if (ganzhaIdx !== -1) { for (let d = 7; d <= 11; d++) if (!deptMatrixData[key][ganzhaIdx][d]) deptMatrixData[key][ganzhaIdx][d] = "К"; }
-                if (tsymbalenkoIdx !== -1) { for (let d = 14; d <= 18; d++) if (!deptMatrixData[key][tsymbalenkoIdx][d]) deptMatrixData[key][tsymbalenkoIdx][d] = "К"; }
-                if (brovenderIdx !== -1) { for (let d = 21; d <= 25; d++) if (!deptMatrixData[key][brovenderIdx][d]) deptMatrixData[key][brovenderIdx][d] = "К"; }
-            }
         }
 
         function saveData() {
@@ -886,7 +1297,7 @@
             document.getElementById('year-select').value = currentYear;
 
             const countTextEl = document.getElementById('interns-count-text');
-            if (countTextEl) countTextEl.textContent = `${internsList.length} осіб у списку`;
+            if (countTextEl) countTextEl.textContent = `${internsList.length} осіб`;
 
             const internsBadge = document.getElementById('tab-interns-count-badge');
             if (internsBadge) internsBadge.textContent = internsList.length;
@@ -906,6 +1317,9 @@
             renderTableBody();
             renderDeptHeader();
             renderDeptTableBody();
+
+            if (mobileViewMode === 'days') renderMobileDayPicker();
+            else if (mobileViewMode === 'interns') renderMobileInternSelect();
         }
 
         function onMonthSelectChange() {
@@ -917,6 +1331,9 @@
             renderTableBody();
             renderDeptHeader();
             renderDeptTableBody();
+
+            if (mobileViewMode === 'days') renderMobileDayPicker();
+            else if (mobileViewMode === 'interns') renderMobileInternSelect();
         }
 
         function initToolPickers() {
@@ -1003,7 +1420,6 @@
                     }
                 });
 
-                // Touch support for drag painting on mobile
                 tbody.addEventListener('touchstart', (e) => {
                     const touch = e.touches[0];
                     const cell = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('td.cell-slot');
@@ -1039,7 +1455,6 @@
                     }
                 });
 
-                // Touch support for drag painting on mobile
                 deptTbody.addEventListener('touchstart', (e) => {
                     const touch = e.touches[0];
                     const cell = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('td.dept-cell-slot');
@@ -1058,14 +1473,8 @@
                 }, { passive: true });
             }
 
-            document.addEventListener('mouseup', () => { 
-                isMouseDown = false; 
-                isDeptMouseDown = false;
-            });
-            document.addEventListener('touchend', () => { 
-                isMouseDown = false; 
-                isDeptMouseDown = false;
-            });
+            document.addEventListener('mouseup', () => { isMouseDown = false; isDeptMouseDown = false; });
+            document.addEventListener('touchend', () => { isMouseDown = false; isDeptMouseDown = false; });
 
             window.addEventListener('resize', () => {
                 updateDynamicLayout();
@@ -1165,15 +1574,17 @@
                 tr.className = 'divide-x divide-slate-200 hover:bg-blue-50/30 transition-colors';
                 tr.dataset.internIdx = idx;
 
+                const displayName = isCompactNames ? getShortName(name) : name;
+
                 let html = `
-                    <td class="sticky-col-num bg-white px-1 py-1.5 text-center font-bold text-slate-500 border-r border-slate-200">
+                    <td class="sticky-col-num bg-white px-0.5 py-1 text-center font-bold text-slate-500 border-r border-slate-200">
                         ${idx + 1}
                     </td>
-                    <td class="sticky-col-name bg-white px-1 py-1 text-left font-bold text-slate-800 border-r border-slate-200">
-                        <input type="text" value="${name}" 
+                    <td class="sticky-col-name bg-white px-0.5 py-1 text-left font-bold text-slate-800 border-r border-slate-200 truncate">
+                        <input type="text" value="${displayName}" 
                             onchange="updateInternName(${idx}, this.value)" 
-                            class="w-full bg-transparent hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded px-1 py-0.5 font-bold text-slate-800 text-[11px] sm:text-xs border border-transparent focus:border-blue-300 outline-none transition truncate"
-                            title="Натисніть, щоб відредагувати ПІБ">
+                            class="w-full bg-transparent hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded px-1 py-0.5 font-bold text-slate-800 text-[10px] sm:text-xs border border-transparent focus:border-blue-300 outline-none transition truncate"
+                            title="${name}">
                     </td>
                 `;
 
@@ -1184,7 +1595,7 @@
 
                     html += `
                         <td data-day="${day}" data-idx="${idx}"
-                            class="cell-slot cursor-pointer select-none py-1.5 px-0 text-center text-[11px] sm:text-xs transition-all border-b border-slate-200 ${colorClass}">
+                            class="cell-slot cursor-pointer select-none py-1.5 px-0 text-center text-[10px] sm:text-xs transition-all border-b border-slate-200 ${colorClass}">
                             ${val}
                         </td>
                     `;
@@ -1195,15 +1606,12 @@
                     <td class="row-total-cell px-0.5 py-1.5 text-center font-extrabold text-blue-900 bg-slate-50 text-[11px]">
                         ${shiftsCount}
                     </td>
-                    <td class="no-print px-1 py-1 text-left bg-white">
+                    <td class="no-print px-0.5 py-1 text-left bg-white">
                         <div class="flex items-center gap-0.5">
-                            <button onclick="fillRowAvailable(${idx})" class="text-[9px] px-1 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200" title="Позначити доступність в усі будні">
+                            <button onclick="fillRowAvailable(${idx})" class="text-[8px] sm:text-[9px] px-1 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200" title="Доступність у будні">
                                 +Будні
                             </button>
-                            <button onclick="clearRow(${idx})" class="text-[9px] px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600" title="Очистити рядок">
-                                <i class="fa-solid fa-eraser"></i>
-                            </button>
-                            <button onclick="openDeleteInternModal(${idx})" class="text-[9px] px-1 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition" title="Видалити інтерна">
+                            <button onclick="openDeleteInternModal(${idx})" class="text-[9px] px-1 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition" title="Видалити">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </div>
@@ -1229,26 +1637,27 @@
 
             internsList.forEach((name, idx) => {
                 const phone = internPhones[name] || '';
+                const displayName = isCompactNames ? getShortName(name) : name;
 
                 const tr = document.createElement('tr');
                 tr.className = 'divide-x divide-slate-200 hover:bg-indigo-50/30 transition-colors';
                 tr.dataset.deptInternIdx = idx;
 
                 let html = `
-                    <td class="sticky-col-num bg-white px-1 py-1.5 text-center font-bold text-slate-500 border-r border-slate-200">
+                    <td class="sticky-col-num bg-white px-0.5 py-1 text-center font-bold text-slate-500 border-r border-slate-200">
                         ${idx + 1}
                     </td>
-                    <td class="sticky-col-name bg-white px-1 py-1 text-left font-bold text-slate-800 border-r border-slate-200">
-                        <input type="text" value="${name}" 
+                    <td class="sticky-col-name bg-white px-0.5 py-1 text-left font-bold text-slate-800 border-r border-slate-200 truncate">
+                        <input type="text" value="${displayName}" 
                             onchange="updateInternName(${idx}, this.value)" 
-                            class="w-full bg-transparent hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-indigo-500 rounded px-1 py-0.5 font-bold text-slate-800 text-[11px] sm:text-xs border border-transparent focus:border-indigo-300 outline-none transition truncate"
-                            title="ПІБ інтерна">
+                            class="w-full bg-transparent hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-indigo-500 rounded px-1 py-0.5 font-bold text-slate-800 text-[10px] sm:text-xs border border-transparent focus:border-indigo-300 outline-none transition truncate"
+                            title="${name}">
                     </td>
-                    <td class="sticky-col-phone bg-white px-1 py-1 text-left border-r border-slate-200">
+                    <td class="sticky-col-phone bg-white px-0.5 py-1 text-left border-r border-slate-200">
                         <input type="text" value="${phone}" 
                             onchange="updateInternPhone('${name}', this.value)" 
                             placeholder="0XXXXXXXXX"
-                            class="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-indigo-500 rounded px-1 py-0.5 text-[11px] text-slate-700 border border-slate-200 outline-none transition">
+                            class="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-indigo-500 rounded px-1 py-0.5 text-[10px] text-slate-700 border border-slate-200 outline-none transition">
                     </td>
                 `;
 
@@ -1259,7 +1668,7 @@
 
                     html += `
                         <td data-day="${day}" data-idx="${idx}"
-                            class="dept-cell-slot cursor-pointer select-none py-1.5 px-0 text-center text-[11px] sm:text-xs transition-all border-b border-slate-200 ${colorClass}">
+                            class="dept-cell-slot cursor-pointer select-none py-1.5 px-0 text-center text-[10px] sm:text-xs transition-all border-b border-slate-200 ${colorClass}">
                             ${val}
                         </td>
                     `;
@@ -1270,12 +1679,9 @@
                     <td class="dept-row-total-cell px-0.5 py-1.5 text-center font-extrabold text-indigo-900 bg-indigo-50 text-[11px]">
                         ${shiftsCount}
                     </td>
-                    <td class="no-print px-1 py-1 text-left bg-white">
+                    <td class="no-print px-0.5 py-1 text-left bg-white">
                         <div class="flex items-center gap-0.5">
-                            <button onclick="clearDeptRow(${idx})" class="text-[9px] px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600" title="Очистити рядок">
-                                <i class="fa-solid fa-eraser"></i>
-                            </button>
-                            <button onclick="openDeleteInternModal(${idx})" class="text-[9px] px-1 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition" title="Видалити інтерна">
+                            <button onclick="openDeleteInternModal(${idx})" class="text-[9px] px-1 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition" title="Видалити">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </div>
@@ -1508,26 +1914,6 @@
             renderTableBody();
         }
 
-        function clearRow(idx) {
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            const monthKey = getMonthKey();
-            for (let day = 1; day <= daysCount; day++) {
-                matrixData[monthKey][idx][day] = '';
-            }
-            saveData();
-            renderTableBody();
-        }
-
-        function clearDeptRow(idx) {
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            const monthKey = getMonthKey();
-            for (let day = 1; day <= daysCount; day++) {
-                deptMatrixData[monthKey][idx][day] = '';
-            }
-            saveData();
-            renderDeptTableBody();
-        }
-
         function confirmResetAll() {
             const daysCount = getDaysInMonth(currentYear, currentMonth);
             const monthKey = getMonthKey();
@@ -1541,6 +1927,8 @@
             closeResetModal();
             renderTableBody();
             renderDeptTableBody();
+            if (mobileViewMode === 'days') renderMobileDayPicker();
+            else if (mobileViewMode === 'interns') renderMobileInternSelect();
             showToast("Всі відмітки поточного місяця скинуто");
         }
 
@@ -1878,6 +2266,18 @@
             renderDeptTableBody();
             initToolPickers();
             setupCellInteractions();
+            
+            // Auto detect mobile screen width to default to compact mode if needed
+            if (window.innerWidth < 640) {
+                isCompactNames = true;
+                const container = document.getElementById('matrix-table-container-wrapper');
+                const btnText = document.getElementById('compact-toggle-text');
+                if (container) container.classList.add('compact-mode');
+                if (btnText) btnText.textContent = 'Повні ПІБ';
+                updateDynamicLayout();
+                renderTableBody();
+                renderDeptTableBody();
+            }
         };
     </script>
 </body>
