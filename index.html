@@ -1,0 +1,1884 @@
+<!DOCTYPE html>
+<html lang="uk" class="h-full bg-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Графік чергувань інтернів</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Library for single-page PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        navy: {
+                            700: '#1e293b',
+                            800: '#1e3a8a',
+                            900: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --num-col-width: 32px;
+            --name-col-width: 240px;
+            --phone-col-width: 110px;
+        }
+
+        /* Responsive overrides for mobile screens (<640px) */
+        @media (max-width: 640px) {
+            :root {
+                --num-col-width: 26px !important;
+                --name-col-width: 135px !important;
+                --phone-col-width: 85px !important;
+            }
+
+            .sticky-col-name input, .sticky-col-phone input {
+                font-size: 10px !important;
+                padding-left: 2px !important;
+                padding-right: 2px !important;
+            }
+
+            .cell-slot, .dept-cell-slot {
+                min-width: 26px !important;
+                font-size: 10px !important;
+            }
+
+            .day-col-header {
+                min-width: 26px !important;
+            }
+        }
+
+        /* Custom scrollbars for matrix view */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Dynamic Sticky positioning layout */
+        .sticky-col-num {
+            position: sticky;
+            left: 0;
+            z-index: 20;
+            width: var(--num-col-width);
+            min-width: var(--num-col-width);
+        }
+        .sticky-col-name {
+            position: sticky;
+            left: var(--num-col-width);
+            z-index: 20;
+            width: var(--name-col-width);
+            min-width: var(--name-col-width);
+        }
+        .sticky-col-phone {
+            position: sticky;
+            left: calc(var(--num-col-width) + var(--name-col-width));
+            z-index: 20;
+            width: var(--phone-col-width);
+            min-width: var(--phone-col-width);
+        }
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 30;
+        }
+        .sticky-corner {
+            position: sticky;
+            top: 0;
+            left: 0;
+            z-index: 40;
+        }
+
+        /* Prevent text selection during cell dragging */
+        .no-select {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: pan-y;
+        }
+
+        /* Active Tab Styling */
+        .tab-btn.active-tab {
+            background-color: #ffffff;
+            color: #1e3a8a;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            border-bottom: 2px solid #2563eb;
+            font-weight: 700;
+        }
+
+        /* Toast Animation */
+        @keyframes slideIn {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .toast-animate {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        /* Print formatting */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background: white;
+                color: black;
+                font-size: 10pt;
+            }
+            .print-table-container {
+                overflow: visible !important;
+                max-height: none !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+            th, td {
+                border: 1px solid #94a3b8 !important;
+                padding: 2px 4px !important;
+                font-size: 8pt !important;
+            }
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans text-slate-800 bg-slate-100 antialiased no-select min-h-screen">
+
+    <!-- TOP APPLICATION HEADER -->
+    <header class="bg-navy-800 text-white shadow-md no-print">
+        <div class="w-full px-2 sm:px-6 py-2.5 flex flex-wrap justify-between items-center gap-2 sm:gap-3">
+            <!-- Title & Badge -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300 font-bold text-lg sm:text-xl shrink-0">
+                    <i class="fa-solid fa-calendar-days"></i>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-xl font-bold tracking-tight text-white flex items-center gap-1.5 sm:gap-2" id="header-month-title">
+                        Чергування на Вересень
+                        <span class="text-[10px] sm:text-xs font-normal px-1.5 py-0.5 rounded-full bg-blue-500/30 border border-blue-400/30 text-blue-200" id="header-year-badge">
+                            2026 р.
+                        </span>
+                    </h1>
+                    <p class="text-[10px] sm:text-xs text-blue-200/80 hidden xs:block">Інтерактивна система чергувань та кадрового розподілу інтернів</p>
+                </div>
+            </div>
+
+            <!-- Month Switcher Controls -->
+            <div class="flex items-center gap-1 bg-slate-900/60 p-1 sm:p-1.5 rounded-xl border border-blue-400/20">
+                <button onclick="changeMonth(-1)" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-500/20 hover:bg-blue-500/40 text-blue-200 transition flex items-center justify-center" title="Попередній місяць">
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                </button>
+                <div class="flex items-center gap-1">
+                    <select id="month-select" onchange="onMonthSelectChange()" class="bg-slate-800 text-white font-semibold text-xs sm:text-sm py-1 px-1.5 sm:px-2 rounded-lg border border-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer">
+                        <option value="1">Січ</option>
+                        <option value="2">Лют</option>
+                        <option value="3">Бер</option>
+                        <option value="4">Квi</option>
+                        <option value="5">Тра</option>
+                        <option value="6">Чер</option>
+                        <option value="7">Лип</option>
+                        <option value="8">Сер</option>
+                        <option value="9" selected>Вер</option>
+                        <option value="10">Жов</option>
+                        <option value="11">Лис</option>
+                        <option value="12">Гру</option>
+                    </select>
+                    <select id="year-select" onchange="onMonthSelectChange()" class="bg-slate-800 text-white font-semibold text-xs sm:text-sm py-1 px-1 rounded-lg border border-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer">
+                        <option value="2025">2025</option>
+                        <option value="2026" selected>2026</option>
+                        <option value="2027">2027</option>
+                        <option value="2028">2028</option>
+                    </select>
+                </div>
+                <button onclick="changeMonth(1)" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-500/20 hover:bg-blue-500/40 text-blue-200 transition flex items-center justify-center" title="Наступний місяць">
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Header Action Buttons -->
+            <div class="flex items-center flex-wrap gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                <button onclick="openExportModal()" class="px-2.5 py-1.5 rounded-lg bg-rose-700 hover:bg-rose-800 text-white font-medium transition flex items-center gap-1 border border-rose-600 shadow-sm" title="Експорт поточного місяця у PDF або CSV">
+                    <i class="fa-solid fa-file-pdf text-xs text-rose-200"></i>
+                    <span>Експорт</span>
+                </button>
+                <button onclick="autoFillWeekdaysAvailable()" class="px-2.5 py-1.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-700 text-emerald-100 font-medium transition flex items-center gap-1 border border-emerald-600" title="Встановити доступність '+' для всіх у будні дні">
+                    <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
+                    <span class="hidden md:inline">Заповнити доступність</span>
+                </button>
+                <button onclick="showResetConfirmation()" class="px-2.5 py-1.5 rounded-lg bg-rose-900/60 hover:bg-rose-800 text-rose-200 font-medium transition flex items-center gap-1 border border-rose-700/50">
+                    <i class="fa-solid fa-rotate-right text-xs"></i>
+                    <span class="hidden md:inline">Скинути</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- TAB NAVIGATION BAR -->
+    <nav class="bg-slate-200 border-b border-slate-300 px-2 sm:px-6 py-1 no-print overflow-x-auto">
+        <div class="flex items-center gap-1.5 whitespace-nowrap">
+            <button id="tab-btn-matrix" onclick="switchTab('matrix')" class="tab-btn active-tab px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-table-cells text-blue-600"></i>
+                <span>Основний графік</span>
+                <span class="px-1.5 py-0.5 text-[10px] bg-blue-100 text-blue-800 rounded-full font-bold" id="tab-interns-count-badge">13</span>
+            </button>
+            <button id="tab-btn-dept" onclick="switchTab('dept')" class="tab-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-hospital-user text-indigo-600"></i>
+                <span>Чергові по кафедрі</span>
+                <span class="px-1.5 py-0.5 text-[10px] bg-indigo-100 text-indigo-800 rounded-full font-bold" id="tab-dept-count-badge">13</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-1 w-full p-1.5 sm:p-4 flex flex-col gap-3 sm:gap-4">
+
+        <!-- TAB 1: MAIN MATRIX SCHEDULE -->
+        <div id="tab-content-matrix" class="flex flex-col gap-3 sm:gap-4">
+
+            <!-- Control Bar & Brush Selector -->
+            <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-2.5 sm:p-4 no-print flex flex-col md:flex-row justify-between items-stretch md:items-center gap-2.5">
+                <!-- Tool Picker (Touch Scrollable) -->
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 w-full no-scrollbar">
+                    <span class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500 shrink-0 flex items-center gap-1">
+                        <i class="fa-solid fa-paint-brush text-blue-600"></i> Інструмент:
+                    </span>
+                    <div class="flex items-center gap-1 shrink-0" id="tool-picker">
+                        <button data-tool="" class="tool-btn active px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border transition shrink-0">
+                            <span class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-slate-400 bg-white inline-block"></span>
+                            <span>Очистити</span>
+                        </button>
+                        <button data-tool="+" class="tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition shrink-0">
+                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                            <span>[ + ] Може</span>
+                        </button>
+                        <button data-tool="Ч" class="tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-blue-400 bg-blue-600 text-white hover:bg-blue-700 transition shrink-0">
+                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-white inline-block"></span>
+                            <span>[ Ч ] Чергування</span>
+                        </button>
+                        <button data-tool="Н" class="tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-purple-400 bg-purple-600 text-white hover:bg-purple-700 transition shrink-0">
+                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-white inline-block"></span>
+                            <span>[ Н ] Нічна зміна</span>
+                        </button>
+                        <button data-tool="В" class="tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-amber-300 bg-amber-100 text-amber-900 hover:bg-amber-200 transition shrink-0">
+                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-500 inline-block"></span>
+                            <span>[ В ] Вихідний</span>
+                        </button>
+                        <button data-tool="Х" class="tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-rose-300 bg-rose-100 text-rose-900 hover:bg-rose-200 transition shrink-0">
+                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-rose-600 inline-block"></span>
+                            <span>[ Х ] Хворий</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MATRIX TABLE CONTAINER -->
+            <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col print-table-container">
+                <div class="overflow-x-auto relative" id="matrix-scroll-container">
+                    <table class="w-full table-fixed border-collapse text-xs text-center" id="schedule-table">
+                        <thead>
+                            <!-- Row 1: Dates -->
+                            <tr class="bg-navy-800 text-white font-semibold divide-x divide-slate-700 sticky-header">
+                                <th class="sticky-corner bg-navy-800 px-1 py-2 text-center border-b border-slate-700 sticky-col-num">№</th>
+                                <th class="sticky-header bg-navy-800 px-2 py-2 text-left border-b border-slate-700 sticky-col-name"> ПІБ інтерна </th>
+                                <th id="day-headers-anchor" class="hidden"></th>
+                                <th class="px-1 py-2 w-12 bg-navy-800 text-center border-b border-slate-700 font-bold text-blue-200 text-[11px]"> Всього<br>змін </th>
+                                <th class="px-2 py-2 w-28 text-left bg-navy-800 border-b border-slate-700 no-print"> Дії </th>
+                            </tr>
+                            <!-- Row 2: Weekdays -->
+                            <tr class="bg-slate-700 text-slate-200 divide-x divide-slate-600 font-medium text-[11px] sticky-header" style="top:33px;">
+                                <th class="sticky-corner bg-slate-700 border-b border-slate-600 sticky-col-num"></th>
+                                <th class="sticky-col-name bg-slate-700 border-b border-slate-600 text-left px-2 py-1 text-slate-300 font-normal italic flex justify-between items-center gap-1">
+                                    <span id="interns-count-text">13 осіб у списку</span>
+                                    <button onclick="openAddInternModal()" class="text-[10px] bg-blue-500/40 hover:bg-blue-500/60 text-white px-1.5 py-0.5 rounded font-medium border border-blue-400/30 transition flex items-center gap-1 no-print">
+                                        <i class="fa-solid fa-user-plus text-[9px]"></i> + Інтерн
+                                    </button>
+                                </th>
+                                <th id="weekday-headers-anchor" class="hidden"></th>
+                                <th class="bg-slate-700 border-b border-slate-600 text-center text-slate-300">Ч+Н</th>
+                                <th class="bg-slate-700 border-b border-slate-600 no-print"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="schedule-tbody" class="divide-y divide-slate-200 bg-white">
+                            <!-- Dynamic rows -->
+                        </tbody>
+                        <tfoot class="bg-slate-100 font-bold divide-y divide-slate-300 border-t-2 border-slate-300">
+                            <tr class="divide-x divide-slate-300">
+                                <td class="sticky-col-num bg-slate-100 px-1 py-2 text-center"></td>
+                                <td class="sticky-col-name bg-slate-100 px-2 py-2 text-right text-slate-700"> Чергових на день: </td>
+                                <td id="daily-totals-anchor" class="hidden"></td>
+                                <td id="grand-total-cell" class="px-0.5 py-2 text-center text-xs font-extrabold text-blue-900 bg-blue-50">0</td>
+                                <td class="no-print bg-slate-100"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </section>
+
+            <!-- STATISTICS CARDS -->
+            <section class="grid grid-cols-1 sm:grid-cols-3 gap-3 no-print">
+                <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-lg font-bold">
+                        <i class="fa-solid fa-user-doctor"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 font-medium">Всього інтернів</div>
+                        <div class="text-lg font-bold text-slate-800" id="stat-interns-count">13</div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-lg font-bold">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 font-medium">Призначено чергувань</div>
+                        <div class="text-lg font-bold text-slate-800" id="stat-total-shifts">0</div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-bold">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 font-medium">Середня кількість змін</div>
+                        <div class="text-lg font-bold text-slate-800" id="stat-avg-shifts">0.0</div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- TAB 2: DEPARTMENT DUTIES (ЧЕРГОВІ ПО КАФЕДРІ - МАТРИЦЯ) -->
+        <div id="tab-content-dept" class="hidden flex-col gap-3 sm:gap-4">
+
+            <!-- Tool Picker & Action Controls Bar -->
+            <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-2.5 sm:p-4 no-print flex flex-col md:flex-row justify-between items-stretch md:items-center gap-2.5">
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 w-full no-scrollbar">
+                    <span class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-indigo-600 shrink-0 flex items-center gap-1">
+                        <i class="fa-solid fa-hospital-user"></i> Інструмент:
+                    </span>
+                    <div class="flex items-center gap-1 shrink-0" id="dept-tool-picker">
+                        <button data-tool="" class="dept-tool-btn active px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border transition shrink-0">
+                            <span class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-slate-400 bg-white inline-block"></span>
+                            <span>Очистити</span>
+                        </button>
+                        <button data-tool="+" class="dept-tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition shrink-0">
+                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                            <span>[ + ] Може</span>
+                        </button>
+                        <button data-tool="К" class="dept-tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-indigo-400 bg-indigo-600 text-white hover:bg-indigo-700 transition shrink-0">
+                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-white inline-block"></span>
+                            <span>[ К ] Черговий кафедри</span>
+                        </button>
+                        <button data-tool="Н" class="dept-tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-purple-400 bg-purple-600 text-white hover:bg-purple-700 transition shrink-0">
+                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-white inline-block"></span>
+                            <span>[ Н ] Нічна зміна</span>
+                        </button>
+                        <button data-tool="В" class="dept-tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-amber-300 bg-amber-100 text-amber-900 hover:bg-amber-200 transition shrink-0">
+                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-500 inline-block"></span>
+                            <span>[ В ] Вихідний</span>
+                        </button>
+                        <button data-tool="Х" class="dept-tool-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-rose-300 bg-rose-100 text-rose-900 hover:bg-rose-200 transition shrink-0">
+                            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-rose-600 inline-block"></span>
+                            <span>[ Х ] Хворий</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DEPARTMENT MATRIX TABLE CONTAINER -->
+            <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col print-table-container">
+                <div class="overflow-x-auto relative" id="dept-matrix-scroll-container">
+                    <table class="w-full table-fixed border-collapse text-xs text-center" id="dept-schedule-table">
+                        <thead>
+                            <!-- Row 1: Dates -->
+                            <tr class="bg-navy-800 text-white font-semibold divide-x divide-slate-700 sticky-header">
+                                <th class="sticky-corner bg-navy-800 px-1 py-2 text-center border-b border-slate-700 sticky-col-num">№</th>
+                                <th class="sticky-header bg-navy-800 px-2 py-2 text-left border-b border-slate-700 sticky-col-name"> ПІБ відповідального інтерна </th>
+                                <th class="sticky-header bg-navy-800 px-2 py-2 text-left border-b border-slate-700 sticky-col-phone"> Телефон </th>
+                                <th id="dept-day-headers-anchor" class="hidden"></th>
+                                <th class="px-1 py-2 w-12 bg-navy-800 text-center border-b border-slate-700 font-bold text-indigo-200 text-[11px]"> Всього<br>змін </th>
+                                <th class="px-2 py-2 w-20 text-left bg-navy-800 border-b border-slate-700 no-print"> Дії </th>
+                            </tr>
+                            <!-- Row 2: Weekdays -->
+                            <tr class="bg-slate-700 text-slate-200 divide-x divide-slate-600 font-medium text-[11px] sticky-header" style="top:33px;">
+                                <th class="sticky-corner bg-slate-700 border-b border-slate-600 sticky-col-num"></th>
+                                <th class="sticky-col-name bg-slate-700 border-b border-slate-600 text-left px-2 py-1 text-slate-300 font-normal italic flex justify-between items-center gap-1">
+                                    <span>Чергові по кафедрі</span>
+                                    <button onclick="openAddInternModal()" class="text-[10px] bg-indigo-500/40 hover:bg-indigo-500/60 text-white px-1.5 py-0.5 rounded font-medium border border-indigo-400/30 transition flex items-center gap-1 no-print">
+                                        <i class="fa-solid fa-user-plus text-[9px]"></i> + Інтерн
+                                    </button>
+                                </th>
+                                <th class="sticky-col-phone bg-slate-700 border-b border-slate-600 text-left px-2 py-1 text-slate-300 font-normal italic">
+                                    <span>Контакт</span>
+                                </th>
+                                <th id="dept-weekday-headers-anchor" class="hidden"></th>
+                                <th class="bg-slate-700 border-b border-slate-600 text-center text-slate-300">[К]</th>
+                                <th class="bg-slate-700 border-b border-slate-600 no-print"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="dept-schedule-tbody" class="divide-y divide-slate-200 bg-white">
+                            <!-- Dynamic rows -->
+                        </tbody>
+                        <tfoot class="bg-slate-100 font-bold divide-y divide-slate-300 border-t-2 border-slate-300">
+                            <tr class="divide-x divide-slate-300">
+                                <td class="sticky-col-num bg-slate-100 px-1 py-2 text-center"></td>
+                                <td class="sticky-col-name bg-slate-100 px-2 py-2 text-right text-slate-700" colspan="2"> Чергових по кафедрі на день: </td>
+                                <td id="dept-daily-totals-anchor" class="hidden"></td>
+                                <td id="dept-grand-total-cell" class="px-0.5 py-2 text-center text-xs font-extrabold text-indigo-900 bg-indigo-50">0</td>
+                                <td class="no-print bg-slate-100"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </section>
+
+        </div>
+
+    </main>
+
+    <!-- MODALS & DIALOGS -->
+
+    <!-- Export / Print Modal -->
+    <div id="export-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-200">
+            <div class="bg-navy-800 text-white px-5 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-file-export text-blue-400"></i>
+                    Експорт та Друк
+                </h3>
+                <button onclick="closeExportModal()" class="text-slate-300 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-5 flex flex-col gap-4">
+                <p class="text-sm text-slate-600">
+                    Оберіть потрібний документ та формат для обраного місяця:
+                </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button onclick="exportToPDF()" class="p-3.5 rounded-xl border border-slate-200 hover:border-rose-500 hover:bg-rose-50/50 transition flex flex-col items-center text-center gap-1.5 group">
+                        <i class="fa-solid fa-file-pdf text-2xl text-rose-600 group-hover:scale-110 transition"></i>
+                        <span class="font-semibold text-xs sm:text-sm text-slate-800">PDF: Основний графік</span>
+                        <span class="text-[10px] text-slate-500">1 сторінка A4 (Альбомна)</span>
+                    </button>
+
+                    <button onclick="exportDeptToPDF()" class="p-3.5 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition flex flex-col items-center text-center gap-1.5 group">
+                        <i class="fa-solid fa-hospital-user text-2xl text-indigo-600 group-hover:scale-110 transition"></i>
+                        <span class="font-semibold text-xs sm:text-sm text-slate-800">PDF: Чергові по кафедрі</span>
+                        <span class="text-[10px] text-slate-500">1 сторінка A4 (Альбомна)</span>
+                    </button>
+
+                    <button onclick="window.print()" class="p-3.5 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition flex flex-col items-center text-center gap-1.5 group">
+                        <i class="fa-solid fa-print text-2xl text-blue-600 group-hover:scale-110 transition"></i>
+                        <span class="font-semibold text-xs sm:text-sm text-slate-800">Друк браузера</span>
+                        <span class="text-[10px] text-slate-500">Прямий вивід на принтер</span>
+                    </button>
+
+                    <button onclick="exportToCSV()" class="p-3.5 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 transition flex flex-col items-center text-center gap-1.5 group">
+                        <i class="fa-solid fa-file-csv text-2xl text-emerald-600 group-hover:scale-110 transition"></i>
+                        <span class="font-semibold text-xs sm:text-sm text-slate-800">Експорт в Excel / CSV</span>
+                        <span class="text-[10px] text-slate-500">Для редагування в Excel</span>
+                    </button>
+                </div>
+            </div>
+            <div class="bg-slate-100 px-5 py-3 border-t border-slate-200 flex justify-end">
+                <button onclick="closeExportModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium text-xs rounded-lg transition">
+                    Закрити
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Reset Modal -->
+    <div id="reset-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
+            <div class="p-5 flex items-start gap-4">
+                <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 font-bold text-lg">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-base text-slate-900">Скинути всі записи?</h3>
+                    <p class="text-xs text-slate-600 mt-1">
+                        Це дія очистить усі відмітки про чергування у поточному місяці. Ви впевнені?
+                    </p>
+                </div>
+            </div>
+            <div class="bg-slate-100 px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="closeResetModal()" class="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium text-xs rounded-lg transition">
+                    Скасувати
+                </button>
+                <button onclick="confirmResetAll()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs rounded-lg transition shadow-sm">
+                    Так, скинути
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Intern Modal -->
+    <div id="add-intern-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
+            <div class="bg-navy-800 text-white px-5 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-user-plus text-blue-400"></i> Додати інтерна
+                </h3>
+                <button onclick="closeAddInternModal()" class="text-slate-300 hover:text-white">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-3">
+                <label class="block text-xs font-semibold text-slate-700">ПІБ нового інтерна (Прізвище у CAPS, Ім'я По батькові):</label>
+                <input type="text" id="new-intern-name-input" placeholder="Наприклад: ШЕВЧЕНКО Ольга Іванівна" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label class="block text-xs font-semibold text-slate-700">Номер телефону:</label>
+                <input type="text" id="new-intern-phone-input" placeholder="0XXXXXXXXX" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="bg-slate-100 px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="closeAddInternModal()" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 font-medium text-xs rounded-lg">Скасувати</button>
+                <button onclick="submitAddIntern()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-lg shadow-sm">Додати</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Intern Confirm Modal -->
+    <div id="delete-intern-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
+            <div class="p-5 flex items-start gap-4">
+                <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 font-bold text-lg">
+                    <i class="fa-solid fa-trash-can"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-base text-slate-900">Видалити інтерна?</h3>
+                    <p class="text-xs text-slate-600 mt-1" id="delete-intern-name-text"></p>
+                </div>
+            </div>
+            <div class="bg-slate-100 px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="closeDeleteInternModal()" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 font-medium text-xs rounded-lg">Скасувати</button>
+                <button onclick="confirmDeleteIntern()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs rounded-lg shadow-sm">Видалити</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Toast Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // Formatter: Only Surname in UPPERCASE, First Name & Patronymic in Title Case
+        function formatInternName(rawName) {
+            if (!rawName) return '';
+            const parts = rawName.trim().split(/\s+/);
+            if (parts.length === 0) return '';
+            
+            const surname = parts[0].toUpperCase();
+            const rest = parts.slice(1).map(part => {
+                if (!part) return '';
+                return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+            });
+            
+            return [surname, ...rest].join(' ');
+        }
+
+        // Alphabetically sorted Interns List with formatted surnames
+        const DEFAULT_INTERNS_LIST = [
+            "БІЛАК Алла Іванівна",
+            "БРОВЕНДЕР Дарина Юріївна",
+            "ГАНЖА Аліна Вікторівна",
+            "ГРАБОВАН Дарія Романівна",
+            "КУПРЕЙЧУК Карина Віталіївна",
+            "ЛІСОВА Вікторія Валентинівна",
+            "МІНДИЛА Ніколь Олексіївна",
+            "ОСІПЧУК Вікторія Валентинівна",
+            "ОСТАШЕВСЬКА Вікторія Сергіївна",
+            "СКВОРЧИНСЬКА Анна Михайлівна",
+            "ТИНЯКОВА Марта Володимирівна",
+            "ЦИМБАЛЕНКО Дарія Олександрівна",
+            "ЯКИМЕНКО Анна Юріївна"
+        ];
+
+        // Default Phone Numbers for Interns
+        const DEFAULT_INTERN_PHONES = {
+            "БРОВЕНДЕР Дарина Юріївна": "0665891954",
+            "ГАНЖА Аліна Вікторівна": "0663432305",
+            "ГРАБОВАН Дарія Романівна": "0953363695",
+            "ЦИМБАЛЕНКО Дарія Олександрівна": "0957103039"
+        };
+
+        const MONTH_NAMES_UA = [
+            "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
+            "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
+        ];
+
+        const UA_WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"];
+
+        // Application State
+        let currentYear = 2026;
+        let currentMonth = 9; // September
+        let activeTab = 'matrix'; // 'matrix' or 'dept'
+        let internsList = [...DEFAULT_INTERNS_LIST];
+        let internPhones = { ...DEFAULT_INTERN_PHONES };
+        let matrixData = {};     // Main matrix schedule
+        let deptMatrixData = {}; // Department duties matrix schedule
+        let activeTool = ""; 
+        let activeDeptTool = "";
+        let isMouseDown = false;
+        let isDeptMouseDown = false;
+        let pendingDeleteInternIdx = null;
+
+        // Dynamically calculate and update CSS column width variable for Name Column based on content length
+        function updateDynamicLayout() {
+            const isMobile = window.innerWidth < 640;
+            if (isMobile) {
+                document.documentElement.style.setProperty('--name-col-width', `135px`);
+                document.documentElement.style.setProperty('--num-col-width', `26px`);
+                document.documentElement.style.setProperty('--phone-col-width', `85px`);
+                return;
+            }
+
+            let maxCharLen = 0;
+            internsList.forEach(name => {
+                if (name && name.length > maxCharLen) maxCharLen = name.length;
+            });
+            
+            // Approx 8.5px per character + padding/buttons space (min 220px)
+            const calculatedWidth = Math.max(220, Math.ceil(maxCharLen * 8.5) + 65);
+            document.documentElement.style.setProperty('--num-col-width', `32px`);
+            document.documentElement.style.setProperty('--name-col-width', `${calculatedWidth}px`);
+            document.documentElement.style.setProperty('--phone-col-width', `110px`);
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            const bgClass = type === 'success' ? 'bg-emerald-800 text-white' : 'bg-slate-800 text-white';
+            
+            toast.className = `toast-animate px-4 py-2.5 rounded-xl shadow-xl text-xs font-medium flex items-center gap-2 border border-white/10 ${bgClass}`;
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Tab Switching Handler
+        function switchTab(tabName) {
+            activeTab = tabName;
+            const matrixTabBtn = document.getElementById('tab-btn-matrix');
+            const deptTabBtn = document.getElementById('tab-btn-dept');
+            const matrixContent = document.getElementById('tab-content-matrix');
+            const deptContent = document.getElementById('tab-content-dept');
+
+            if (tabName === 'matrix') {
+                matrixTabBtn.classList.add('active-tab');
+                deptTabBtn.classList.remove('active-tab');
+                matrixContent.classList.remove('hidden');
+                deptContent.classList.add('hidden');
+            } else {
+                deptTabBtn.classList.add('active-tab');
+                matrixTabBtn.classList.remove('active-tab');
+                deptContent.classList.remove('hidden');
+                matrixContent.classList.add('hidden');
+                renderDeptHeader();
+                renderDeptTableBody();
+            }
+        }
+
+        // Modal Controls
+        function openExportModal() { document.getElementById('export-modal')?.classList.remove('hidden'); }
+        function closeExportModal() { document.getElementById('export-modal')?.classList.add('hidden'); }
+        function showResetConfirmation() { document.getElementById('reset-modal')?.classList.remove('hidden'); }
+        function closeResetModal() { document.getElementById('reset-modal')?.classList.add('hidden'); }
+
+        function openAddInternModal() {
+            const input = document.getElementById('new-intern-name-input');
+            const phoneInput = document.getElementById('new-intern-phone-input');
+            if (input) input.value = '';
+            if (phoneInput) phoneInput.value = '';
+            document.getElementById('add-intern-modal')?.classList.remove('hidden');
+        }
+        function closeAddInternModal() { document.getElementById('add-intern-modal')?.classList.add('hidden'); }
+
+        function submitAddIntern() {
+            const input = document.getElementById('new-intern-name-input');
+            const phoneInput = document.getElementById('new-intern-phone-input');
+            const rawName = input ? input.value.trim() : '';
+            const phone = phoneInput ? phoneInput.value.trim() : '';
+
+            if (rawName) {
+                const formattedName = formatInternName(rawName);
+                if (!internsList.includes(formattedName)) {
+                    internsList.push(formattedName);
+                    sortInternsList();
+                }
+                if (phone) {
+                    internPhones[formattedName] = phone;
+                }
+
+                ensureMonthExists(currentYear, currentMonth);
+                saveData();
+                updateDynamicLayout();
+                renderTableBody();
+                renderDeptTableBody();
+                closeAddInternModal();
+                showToast(`Додано інтерна: ${formattedName}`, 'success');
+            }
+        }
+
+        function sortInternsList() {
+            internsList.sort((a, b) => a.localeCompare(b, 'uk'));
+        }
+
+        function openDeleteInternModal(idx) {
+            pendingDeleteInternIdx = idx;
+            const textEl = document.getElementById('delete-intern-name-text');
+            if (textEl) textEl.textContent = `Ви дійсно бажаєте видалити інтерна "${internsList[idx]}"?`;
+            document.getElementById('delete-intern-modal')?.classList.remove('hidden');
+        }
+
+        function closeDeleteInternModal() {
+            pendingDeleteInternIdx = null;
+            document.getElementById('delete-intern-modal')?.classList.add('hidden');
+        }
+
+        function confirmDeleteIntern() {
+            if (pendingDeleteInternIdx !== null && pendingDeleteInternIdx >= 0) {
+                const name = internsList[pendingDeleteInternIdx];
+                internsList.splice(pendingDeleteInternIdx, 1);
+                
+                const monthKey = getMonthKey();
+                if (matrixData[monthKey]) {
+                    delete matrixData[monthKey][pendingDeleteInternIdx];
+                }
+                if (deptMatrixData[monthKey]) {
+                    delete deptMatrixData[monthKey][pendingDeleteInternIdx];
+                }
+
+                saveData();
+                updateDynamicLayout();
+                renderTableBody();
+                renderDeptTableBody();
+                closeDeleteInternModal();
+                showToast(`Видалено інтерна: ${name}`);
+            }
+        }
+
+        function getMonthKey() {
+            return `${currentYear}-${currentMonth}`;
+        }
+
+        function getDaysInMonth(year, month) {
+            return new Date(year, month, 0).getDate();
+        }
+
+        function getDayOfWeekIndex(day) {
+            const dt = new Date(currentYear, currentMonth - 1, day);
+            return (dt.getDay() + 6) % 7; // Convert to 0 = Mon, 6 = Sun
+        }
+
+        function isWeekendDay(day) {
+            const wd = getDayOfWeekIndex(day);
+            return wd === 5 || wd === 6;
+        }
+
+        function initData() {
+            const savedInterns = localStorage.getItem('duty_schedule_interns_list_v5');
+            if (savedInterns) {
+                try { 
+                    const parsed = JSON.parse(savedInterns);
+                    internsList = parsed.map(formatInternName);
+                } catch(e) { console.error(e); }
+            } else {
+                internsList = DEFAULT_INTERNS_LIST.map(formatInternName);
+            }
+            sortInternsList();
+
+            const savedPhones = localStorage.getItem('duty_schedule_interns_phones_v5');
+            if (savedPhones) {
+                try { internPhones = JSON.parse(savedPhones); } catch(e) { console.error(e); }
+            }
+
+            const savedData = localStorage.getItem('duty_schedule_multi_months_v5');
+            if (savedData) {
+                try {
+                    const parsed = JSON.parse(savedData);
+                    matrixData = parsed.matrixData || {};
+                    deptMatrixData = parsed.deptMatrixData || {};
+                } catch(e) { console.error(e); }
+            }
+
+            ensureMonthExists(currentYear, currentMonth);
+            updateDynamicLayout();
+        }
+
+        function ensureMonthExists(year, month) {
+            const key = `${year}-${month}`;
+            if (!matrixData[key]) matrixData[key] = {};
+            if (!deptMatrixData[key]) deptMatrixData[key] = {};
+
+            const daysCount = getDaysInMonth(year, month);
+            internsList.forEach((_, idx) => {
+                if (!matrixData[key][idx]) matrixData[key][idx] = {};
+                if (!deptMatrixData[key][idx]) deptMatrixData[key][idx] = {};
+
+                for (let day = 1; day <= daysCount; day++) {
+                    if (matrixData[key][idx][day] === undefined) {
+                        matrixData[key][idx][day] = "";
+                    }
+                    if (deptMatrixData[key][idx][day] === undefined) {
+                        deptMatrixData[key][idx][day] = "";
+                    }
+                }
+            });
+
+            // Pre-fill Sept 2026 department duties if unassigned
+            if (key === '2026-9') {
+                const grabovanIdx = internsList.findIndex(n => n.startsWith("ГРАБОВАН"));
+                const ganzhaIdx = internsList.findIndex(n => n.startsWith("ГАНЖА"));
+                const tsymbalenkoIdx = internsList.findIndex(n => n.startsWith("ЦИМБАЛЕНКО"));
+                const brovenderIdx = internsList.findIndex(n => n.startsWith("БРОВЕНДЕР"));
+
+                if (grabovanIdx !== -1) { for (let d = 1; d <= 4; d++) if (!deptMatrixData[key][grabovanIdx][d]) deptMatrixData[key][grabovanIdx][d] = "К"; }
+                if (ganzhaIdx !== -1) { for (let d = 7; d <= 11; d++) if (!deptMatrixData[key][ganzhaIdx][d]) deptMatrixData[key][ganzhaIdx][d] = "К"; }
+                if (tsymbalenkoIdx !== -1) { for (let d = 14; d <= 18; d++) if (!deptMatrixData[key][tsymbalenkoIdx][d]) deptMatrixData[key][tsymbalenkoIdx][d] = "К"; }
+                if (brovenderIdx !== -1) { for (let d = 21; d <= 25; d++) if (!deptMatrixData[key][brovenderIdx][d]) deptMatrixData[key][brovenderIdx][d] = "К"; }
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('duty_schedule_interns_list_v5', JSON.stringify(internsList));
+            localStorage.setItem('duty_schedule_interns_phones_v5', JSON.stringify(internPhones));
+            localStorage.setItem('duty_schedule_multi_months_v5', JSON.stringify({
+                matrixData: matrixData,
+                deptMatrixData: deptMatrixData
+            }));
+        }
+
+        function updateHeaderUI() {
+            const monthName = MONTH_NAMES_UA[currentMonth - 1];
+            document.getElementById('header-month-title').childNodes[0].nodeValue = `Чергування на ${monthName} `;
+            document.getElementById('header-year-badge').textContent = `${currentYear} р.`;
+            document.getElementById('month-select').value = currentMonth;
+            document.getElementById('year-select').value = currentYear;
+
+            const countTextEl = document.getElementById('interns-count-text');
+            if (countTextEl) countTextEl.textContent = `${internsList.length} осіб у списку`;
+
+            const internsBadge = document.getElementById('tab-interns-count-badge');
+            if (internsBadge) internsBadge.textContent = internsList.length;
+
+            const deptBadge = document.getElementById('tab-dept-count-badge');
+            if (deptBadge) deptBadge.textContent = internsList.length;
+        }
+
+        function changeMonth(delta) {
+            currentMonth += delta;
+            if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+            else if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+            
+            ensureMonthExists(currentYear, currentMonth);
+            updateHeaderUI();
+            renderHeader();
+            renderTableBody();
+            renderDeptHeader();
+            renderDeptTableBody();
+        }
+
+        function onMonthSelectChange() {
+            currentMonth = parseInt(document.getElementById('month-select').value);
+            currentYear = parseInt(document.getElementById('year-select').value);
+            ensureMonthExists(currentYear, currentMonth);
+            updateHeaderUI();
+            renderHeader();
+            renderTableBody();
+            renderDeptHeader();
+            renderDeptTableBody();
+        }
+
+        function initToolPickers() {
+            // Main Tool Picker
+            const toolPicker = document.getElementById('tool-picker');
+            if (toolPicker) {
+                const toolButtons = toolPicker.querySelectorAll('.tool-btn');
+                toolButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        toolButtons.forEach(b => b.classList.remove('ring-2', 'ring-offset-1', 'ring-blue-500', 'shadow-md'));
+                        btn.classList.add('ring-2', 'ring-offset-1', 'ring-blue-500', 'shadow-md');
+                        activeTool = btn.dataset.tool;
+                    });
+                });
+                const defaultBtn = toolPicker.querySelector('.tool-btn.active');
+                if (defaultBtn) {
+                    defaultBtn.classList.add('ring-2', 'ring-offset-1', 'ring-blue-500', 'shadow-md');
+                    activeTool = defaultBtn.dataset.tool;
+                }
+            }
+
+            // Department Tool Picker
+            const deptToolPicker = document.getElementById('dept-tool-picker');
+            if (deptToolPicker) {
+                const deptToolButtons = deptToolPicker.querySelectorAll('.dept-tool-btn');
+                deptToolButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        deptToolButtons.forEach(b => b.classList.remove('ring-2', 'ring-offset-1', 'ring-indigo-500', 'shadow-md'));
+                        btn.classList.add('ring-2', 'ring-offset-1', 'ring-indigo-500', 'shadow-md');
+                        activeDeptTool = btn.dataset.tool;
+                    });
+                });
+                const defaultDeptBtn = deptToolPicker.querySelector('.dept-tool-btn.active');
+                if (defaultDeptBtn) {
+                    defaultDeptBtn.classList.add('ring-2', 'ring-offset-1', 'ring-indigo-500', 'shadow-md');
+                    activeDeptTool = defaultDeptBtn.dataset.tool;
+                }
+            }
+        }
+
+        function applyToolToCell(cell) {
+            if (!cell) return;
+            const idx = parseInt(cell.dataset.idx);
+            const day = parseInt(cell.dataset.day);
+            if (isNaN(idx) || isNaN(day)) return;
+
+            const monthKey = getMonthKey();
+            if (!matrixData[monthKey] || !matrixData[monthKey][idx]) return;
+
+            matrixData[monthKey][idx][day] = activeTool;
+            updateRowAndTotals(idx, day);
+            saveData();
+        }
+
+        function applyDeptToolToCell(cell) {
+            if (!cell) return;
+            const idx = parseInt(cell.dataset.idx);
+            const day = parseInt(cell.dataset.day);
+            if (isNaN(idx) || isNaN(day)) return;
+
+            const monthKey = getMonthKey();
+            if (!deptMatrixData[monthKey] || !deptMatrixData[monthKey][idx]) return;
+
+            deptMatrixData[monthKey][idx][day] = activeDeptTool;
+            updateDeptRowAndTotals(idx, day);
+            saveData();
+        }
+
+        function setupCellInteractions() {
+            // Main Matrix Mouse & Touch Interactions
+            const tbody = document.getElementById('schedule-tbody');
+            if (tbody) {
+                tbody.addEventListener('mousedown', (e) => {
+                    const cell = e.target.closest('td.cell-slot');
+                    if (cell) {
+                        isMouseDown = true;
+                        applyToolToCell(cell);
+                    }
+                });
+                tbody.addEventListener('mouseover', (e) => {
+                    if (isMouseDown) {
+                        const cell = e.target.closest('td.cell-slot');
+                        if (cell) applyToolToCell(cell);
+                    }
+                });
+
+                // Touch support for drag painting on mobile
+                tbody.addEventListener('touchstart', (e) => {
+                    const touch = e.touches[0];
+                    const cell = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('td.cell-slot');
+                    if (cell) {
+                        isMouseDown = true;
+                        applyToolToCell(cell);
+                    }
+                }, { passive: true });
+
+                tbody.addEventListener('touchmove', (e) => {
+                    if (isMouseDown) {
+                        const touch = e.touches[0];
+                        const cell = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('td.cell-slot');
+                        if (cell) applyToolToCell(cell);
+                    }
+                }, { passive: true });
+            }
+
+            // Department Matrix Mouse & Touch Interactions
+            const deptTbody = document.getElementById('dept-schedule-tbody');
+            if (deptTbody) {
+                deptTbody.addEventListener('mousedown', (e) => {
+                    const cell = e.target.closest('td.dept-cell-slot');
+                    if (cell) {
+                        isDeptMouseDown = true;
+                        applyDeptToolToCell(cell);
+                    }
+                });
+                deptTbody.addEventListener('mouseover', (e) => {
+                    if (isDeptMouseDown) {
+                        const cell = e.target.closest('td.dept-cell-slot');
+                        if (cell) applyDeptToolToCell(cell);
+                    }
+                });
+
+                // Touch support for drag painting on mobile
+                deptTbody.addEventListener('touchstart', (e) => {
+                    const touch = e.touches[0];
+                    const cell = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('td.dept-cell-slot');
+                    if (cell) {
+                        isDeptMouseDown = true;
+                        applyDeptToolToCell(cell);
+                    }
+                }, { passive: true });
+
+                deptTbody.addEventListener('touchmove', (e) => {
+                    if (isDeptMouseDown) {
+                        const touch = e.touches[0];
+                        const cell = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('td.dept-cell-slot');
+                        if (cell) applyDeptToolToCell(cell);
+                    }
+                }, { passive: true });
+            }
+
+            document.addEventListener('mouseup', () => { 
+                isMouseDown = false; 
+                isDeptMouseDown = false;
+            });
+            document.addEventListener('touchend', () => { 
+                isMouseDown = false; 
+                isDeptMouseDown = false;
+            });
+
+            window.addEventListener('resize', () => {
+                updateDynamicLayout();
+            });
+        }
+
+        function renderHeader() {
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const dayAnchor = document.getElementById('day-headers-anchor');
+            const weekdayAnchor = document.getElementById('weekday-headers-anchor');
+
+            document.querySelectorAll('.generated-day-header').forEach(el => el.remove());
+            document.querySelectorAll('.generated-weekday-header').forEach(el => el.remove());
+
+            let dayHtml = '';
+            let weekdayHtml = '';
+
+            for (let day = 1; day <= daysCount; day++) {
+                const isWknd = isWeekendDay(day);
+                const wdName = UA_WEEKDAYS[getDayOfWeekIndex(day)];
+
+                const bgHeaderClass = isWknd ? 'bg-rose-700 text-rose-100' : 'bg-navy-800 text-white';
+                const bgWkndClass = isWknd ? 'bg-rose-800 text-rose-100' : 'bg-slate-700 text-slate-200';
+
+                dayHtml += `
+                    <th class="generated-day-header day-col-header py-1 px-0 text-center border-b border-slate-700 ${bgHeaderClass}">
+                        <div class="font-bold text-[10px] sm:text-xs">${day}</div>
+                    </th>
+                `;
+
+                weekdayHtml += `
+                    <th class="generated-weekday-header py-0.5 px-0 text-center text-[9px] sm:text-[10px] font-medium border-b border-slate-600 ${bgWkndClass}">
+                        ${wdName}
+                    </th>
+                `;
+            }
+
+            dayAnchor.insertAdjacentHTML('beforebegin', dayHtml);
+            weekdayAnchor.insertAdjacentHTML('beforebegin', weekdayHtml);
+        }
+
+        function renderDeptHeader() {
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const dayAnchor = document.getElementById('dept-day-headers-anchor');
+            const weekdayAnchor = document.getElementById('dept-weekday-headers-anchor');
+
+            document.querySelectorAll('.generated-dept-day-header').forEach(el => el.remove());
+            document.querySelectorAll('.generated-dept-weekday-header').forEach(el => el.remove());
+
+            let dayHtml = '';
+            let weekdayHtml = '';
+
+            for (let day = 1; day <= daysCount; day++) {
+                const isWknd = isWeekendDay(day);
+                const wdName = UA_WEEKDAYS[getDayOfWeekIndex(day)];
+
+                const bgHeaderClass = isWknd ? 'bg-rose-700 text-rose-100' : 'bg-navy-800 text-white';
+                const bgWkndClass = isWknd ? 'bg-rose-800 text-rose-100' : 'bg-slate-700 text-slate-200';
+
+                dayHtml += `
+                    <th class="generated-dept-day-header day-col-header py-1 px-0 text-center border-b border-slate-700 ${bgHeaderClass}">
+                        <div class="font-bold text-[10px] sm:text-xs">${day}</div>
+                    </th>
+                `;
+
+                weekdayHtml += `
+                    <th class="generated-dept-weekday-header py-0.5 px-0 text-center text-[9px] sm:text-[10px] font-medium border-b border-slate-600 ${bgWkndClass}">
+                        ${wdName}
+                    </th>
+                `;
+            }
+
+            dayAnchor.insertAdjacentHTML('beforebegin', dayHtml);
+            weekdayAnchor.insertAdjacentHTML('beforebegin', weekdayHtml);
+        }
+
+        function getCellColorClasses(val, isWknd) {
+            switch(val) {
+                case '+': return 'bg-emerald-100 text-emerald-800 font-bold hover:bg-emerald-200';
+                case 'Ч': return 'bg-blue-600 text-white font-extrabold shadow-inner hover:bg-blue-700';
+                case 'Н': return 'bg-purple-600 text-white font-extrabold shadow-inner hover:bg-purple-700';
+                case 'К': return 'bg-indigo-600 text-white font-extrabold shadow-inner hover:bg-indigo-700';
+                case 'В': return 'bg-amber-100 text-amber-900 font-bold hover:bg-amber-200';
+                case 'Х': return 'bg-rose-200 text-rose-900 font-bold hover:bg-rose-300';
+                default: return isWknd ? 'bg-rose-50/60 hover:bg-rose-100/80 text-slate-400' : 'hover:bg-slate-100 text-slate-400';
+            }
+        }
+
+        function renderTableBody() {
+            const tbody = document.getElementById('schedule-tbody');
+            tbody.innerHTML = '';
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const monthKey = getMonthKey();
+
+            internsList.forEach((name, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = 'divide-x divide-slate-200 hover:bg-blue-50/30 transition-colors';
+                tr.dataset.internIdx = idx;
+
+                let html = `
+                    <td class="sticky-col-num bg-white px-1 py-1.5 text-center font-bold text-slate-500 border-r border-slate-200">
+                        ${idx + 1}
+                    </td>
+                    <td class="sticky-col-name bg-white px-1 py-1 text-left font-bold text-slate-800 border-r border-slate-200">
+                        <input type="text" value="${name}" 
+                            onchange="updateInternName(${idx}, this.value)" 
+                            class="w-full bg-transparent hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded px-1 py-0.5 font-bold text-slate-800 text-[11px] sm:text-xs border border-transparent focus:border-blue-300 outline-none transition truncate"
+                            title="Натисніть, щоб відредагувати ПІБ">
+                    </td>
+                `;
+
+                for (let day = 1; day <= daysCount; day++) {
+                    const isWknd = isWeekendDay(day);
+                    const val = (matrixData[monthKey][idx] && matrixData[monthKey][idx][day]) || '';
+                    const colorClass = getCellColorClasses(val, isWknd);
+
+                    html += `
+                        <td data-day="${day}" data-idx="${idx}"
+                            class="cell-slot cursor-pointer select-none py-1.5 px-0 text-center text-[11px] sm:text-xs transition-all border-b border-slate-200 ${colorClass}">
+                            ${val}
+                        </td>
+                    `;
+                }
+
+                const shiftsCount = calculateInternShifts(idx);
+                html += `
+                    <td class="row-total-cell px-0.5 py-1.5 text-center font-extrabold text-blue-900 bg-slate-50 text-[11px]">
+                        ${shiftsCount}
+                    </td>
+                    <td class="no-print px-1 py-1 text-left bg-white">
+                        <div class="flex items-center gap-0.5">
+                            <button onclick="fillRowAvailable(${idx})" class="text-[9px] px-1 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200" title="Позначити доступність в усі будні">
+                                +Будні
+                            </button>
+                            <button onclick="clearRow(${idx})" class="text-[9px] px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600" title="Очистити рядок">
+                                <i class="fa-solid fa-eraser"></i>
+                            </button>
+                            <button onclick="openDeleteInternModal(${idx})" class="text-[9px] px-1 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition" title="Видалити інтерна">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+
+                tr.innerHTML = html;
+                tbody.appendChild(tr);
+            });
+
+            renderDailyFooterTotals();
+            updateStatistics();
+            updateHeaderUI();
+        }
+
+        function renderDeptTableBody() {
+            const tbody = document.getElementById('dept-schedule-tbody');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const monthKey = getMonthKey();
+
+            internsList.forEach((name, idx) => {
+                const phone = internPhones[name] || '';
+
+                const tr = document.createElement('tr');
+                tr.className = 'divide-x divide-slate-200 hover:bg-indigo-50/30 transition-colors';
+                tr.dataset.deptInternIdx = idx;
+
+                let html = `
+                    <td class="sticky-col-num bg-white px-1 py-1.5 text-center font-bold text-slate-500 border-r border-slate-200">
+                        ${idx + 1}
+                    </td>
+                    <td class="sticky-col-name bg-white px-1 py-1 text-left font-bold text-slate-800 border-r border-slate-200">
+                        <input type="text" value="${name}" 
+                            onchange="updateInternName(${idx}, this.value)" 
+                            class="w-full bg-transparent hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-indigo-500 rounded px-1 py-0.5 font-bold text-slate-800 text-[11px] sm:text-xs border border-transparent focus:border-indigo-300 outline-none transition truncate"
+                            title="ПІБ інтерна">
+                    </td>
+                    <td class="sticky-col-phone bg-white px-1 py-1 text-left border-r border-slate-200">
+                        <input type="text" value="${phone}" 
+                            onchange="updateInternPhone('${name}', this.value)" 
+                            placeholder="0XXXXXXXXX"
+                            class="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-indigo-500 rounded px-1 py-0.5 text-[11px] text-slate-700 border border-slate-200 outline-none transition">
+                    </td>
+                `;
+
+                for (let day = 1; day <= daysCount; day++) {
+                    const isWknd = isWeekendDay(day);
+                    const val = (deptMatrixData[monthKey][idx] && deptMatrixData[monthKey][idx][day]) || '';
+                    const colorClass = getCellColorClasses(val, isWknd);
+
+                    html += `
+                        <td data-day="${day}" data-idx="${idx}"
+                            class="dept-cell-slot cursor-pointer select-none py-1.5 px-0 text-center text-[11px] sm:text-xs transition-all border-b border-slate-200 ${colorClass}">
+                            ${val}
+                        </td>
+                    `;
+                }
+
+                const shiftsCount = calculateInternDeptShifts(idx);
+                html += `
+                    <td class="dept-row-total-cell px-0.5 py-1.5 text-center font-extrabold text-indigo-900 bg-indigo-50 text-[11px]">
+                        ${shiftsCount}
+                    </td>
+                    <td class="no-print px-1 py-1 text-left bg-white">
+                        <div class="flex items-center gap-0.5">
+                            <button onclick="clearDeptRow(${idx})" class="text-[9px] px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600" title="Очистити рядок">
+                                <i class="fa-solid fa-eraser"></i>
+                            </button>
+                            <button onclick="openDeleteInternModal(${idx})" class="text-[9px] px-1 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition" title="Видалити інтерна">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+
+                tr.innerHTML = html;
+                tbody.appendChild(tr);
+            });
+
+            renderDeptDailyFooterTotals();
+            updateHeaderUI();
+        }
+
+        function updateInternName(idx, newName) {
+            const formatted = formatInternName(newName);
+            if (formatted) {
+                const oldName = internsList[idx];
+                if (internPhones[oldName]) {
+                    internPhones[formatted] = internPhones[oldName];
+                    delete internPhones[oldName];
+                }
+                internsList[idx] = formatted;
+                sortInternsList();
+                saveData();
+                updateDynamicLayout();
+                renderTableBody();
+                renderDeptTableBody();
+            }
+        }
+
+        function updateInternPhone(name, phone) {
+            internPhones[name] = phone.trim();
+            saveData();
+        }
+
+        function calculateInternShifts(idx) {
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const monthKey = getMonthKey();
+            let count = 0;
+            for (let d = 1; d <= daysCount; d++) {
+                const v = matrixData[monthKey][idx] ? matrixData[monthKey][idx][d] : '';
+                if (v === 'Ч' || v === 'Н') count++;
+            }
+            return count;
+        }
+
+        function calculateInternDeptShifts(idx) {
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const monthKey = getMonthKey();
+            let count = 0;
+            for (let d = 1; d <= daysCount; d++) {
+                const v = deptMatrixData[monthKey][idx] ? deptMatrixData[monthKey][idx][d] : '';
+                if (v === 'К') count++;
+            }
+            return count;
+        }
+
+        function calculateDayDuties(day) {
+            const monthKey = getMonthKey();
+            let count = 0;
+            internsList.forEach((_, idx) => {
+                const v = matrixData[monthKey][idx] ? matrixData[monthKey][idx][day] : '';
+                if (v === 'Ч' || v === 'Н') count++;
+            });
+            return count;
+        }
+
+        function calculateDeptDayDuties(day) {
+            const monthKey = getMonthKey();
+            let count = 0;
+            internsList.forEach((_, idx) => {
+                const v = deptMatrixData[monthKey][idx] ? deptMatrixData[monthKey][idx][day] : '';
+                if (v === 'К') count++;
+            });
+            return count;
+        }
+
+        function updateStatistics() {
+            const internsCount = internsList.length;
+            let totalShifts = 0;
+            internsList.forEach((_, idx) => {
+                totalShifts += calculateInternShifts(idx);
+            });
+            const avgShifts = internsCount > 0 ? (totalShifts / internsCount).toFixed(1) : '0.0';
+
+            const countEl = document.getElementById('stat-interns-count');
+            const totalEl = document.getElementById('stat-total-shifts');
+            const avgEl = document.getElementById('stat-avg-shifts');
+
+            if (countEl) countEl.textContent = internsCount;
+            if (totalEl) totalEl.textContent = totalShifts;
+            if (avgEl) avgEl.textContent = avgShifts;
+        }
+
+        function updateRowAndTotals(internIdx, day) {
+            const monthKey = getMonthKey();
+            const cell = document.querySelector(`td.cell-slot[data-idx="${internIdx}"][data-day="${day}"]`);
+            if (cell) {
+                const isWknd = isWeekendDay(day);
+                const val = matrixData[monthKey][internIdx][day] || '';
+                cell.className = `cell-slot cursor-pointer select-none py-1.5 px-0 text-center text-xs transition-all border-b border-slate-200 ${getCellColorClasses(val, isWknd)}`;
+                cell.textContent = val;
+            }
+
+            const tr = document.querySelector(`tr[data-intern-idx="${internIdx}"]`);
+            if (tr) {
+                const totalCell = tr.querySelector('.row-total-cell');
+                if (totalCell) totalCell.textContent = calculateInternShifts(internIdx);
+            }
+
+            const dayFooterCell = document.querySelector(`td.day-footer-total[data-day="${day}"]`);
+            if (dayFooterCell) {
+                const count = calculateDayDuties(day);
+                dayFooterCell.textContent = count;
+                dayFooterCell.className = count === 0 
+                    ? "day-footer-total px-0.5 py-2 text-center text-xs font-bold text-rose-600 bg-rose-50"
+                    : "day-footer-total px-0.5 py-2 text-center text-xs font-bold text-slate-800 bg-slate-100";
+            }
+
+            let grandTotal = 0;
+            internsList.forEach((_, idx) => grandTotal += calculateInternShifts(idx));
+            document.getElementById('grand-total-cell').textContent = grandTotal;
+
+            updateStatistics();
+        }
+
+        function updateDeptRowAndTotals(internIdx, day) {
+            const monthKey = getMonthKey();
+            const cell = document.querySelector(`td.dept-cell-slot[data-idx="${internIdx}"][data-day="${day}"]`);
+            if (cell) {
+                const isWknd = isWeekendDay(day);
+                const val = deptMatrixData[monthKey][internIdx][day] || '';
+                cell.className = `dept-cell-slot cursor-pointer select-none py-1.5 px-0 text-center text-xs transition-all border-b border-slate-200 ${getCellColorClasses(val, isWknd)}`;
+                cell.textContent = val;
+            }
+
+            const tr = document.querySelector(`tr[data-dept-intern-idx="${internIdx}"]`);
+            if (tr) {
+                const totalCell = tr.querySelector('.dept-row-total-cell');
+                if (totalCell) totalCell.textContent = calculateInternDeptShifts(internIdx);
+            }
+
+            const dayFooterCell = document.querySelector(`td.dept-day-footer-total[data-day="${day}"]`);
+            if (dayFooterCell) {
+                const count = calculateDeptDayDuties(day);
+                dayFooterCell.textContent = count;
+                dayFooterCell.className = count === 0 
+                    ? "dept-day-footer-total px-0.5 py-2 text-center text-xs font-bold text-rose-600 bg-rose-50"
+                    : "dept-day-footer-total px-0.5 py-2 text-center text-xs font-bold text-slate-800 bg-slate-100";
+            }
+
+            let grandTotal = 0;
+            internsList.forEach((_, idx) => grandTotal += calculateInternDeptShifts(idx));
+            document.getElementById('dept-grand-total-cell').textContent = grandTotal;
+        }
+
+        function renderDailyFooterTotals() {
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const anchor = document.getElementById('daily-totals-anchor');
+
+            document.querySelectorAll('.day-footer-total').forEach(el => el.remove());
+
+            let html = '';
+            let grandTotal = 0;
+
+            for (let day = 1; day <= daysCount; day++) {
+                const count = calculateDayDuties(day);
+                grandTotal += count;
+                const alertBg = (count === 0) ? 'text-rose-600 bg-rose-50' : 'text-slate-800 bg-slate-100';
+
+                html += `
+                    <td data-day="${day}" class="day-footer-total px-0.5 py-2 text-center text-xs font-bold ${alertBg}">
+                        ${count}
+                    </td>
+                `;
+            }
+
+            anchor.insertAdjacentHTML('beforebegin', html);
+            document.getElementById('grand-total-cell').textContent = grandTotal;
+        }
+
+        function renderDeptDailyFooterTotals() {
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const anchor = document.getElementById('dept-daily-totals-anchor');
+
+            document.querySelectorAll('.dept-day-footer-total').forEach(el => el.remove());
+
+            let html = '';
+            let grandTotal = 0;
+
+            for (let day = 1; day <= daysCount; day++) {
+                const count = calculateDeptDayDuties(day);
+                grandTotal += count;
+                const alertBg = (count === 0) ? 'text-slate-400 bg-slate-50' : 'text-indigo-900 bg-indigo-50 font-bold';
+
+                html += `
+                    <td data-day="${day}" class="dept-day-footer-total px-0.5 py-2 text-center text-xs ${alertBg}">
+                        ${count}
+                    </td>
+                `;
+            }
+
+            anchor.insertAdjacentHTML('beforebegin', html);
+            document.getElementById('dept-grand-total-cell').textContent = grandTotal;
+        }
+
+        function autoFillWeekdaysAvailable() {
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const monthKey = getMonthKey();
+            internsList.forEach((_, idx) => {
+                for (let day = 1; day <= daysCount; day++) {
+                    if (!isWeekendDay(day) && !matrixData[monthKey][idx][day]) {
+                        matrixData[monthKey][idx][day] = '+';
+                    }
+                }
+            });
+            saveData();
+            renderTableBody();
+            showToast("Доступність '+' встановлено на всі будні");
+        }
+
+        function fillRowAvailable(idx) {
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const monthKey = getMonthKey();
+            for (let day = 1; day <= daysCount; day++) {
+                if (!isWeekendDay(day)) matrixData[monthKey][idx][day] = '+';
+            }
+            saveData();
+            renderTableBody();
+        }
+
+        function clearRow(idx) {
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const monthKey = getMonthKey();
+            for (let day = 1; day <= daysCount; day++) {
+                matrixData[monthKey][idx][day] = '';
+            }
+            saveData();
+            renderTableBody();
+        }
+
+        function clearDeptRow(idx) {
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const monthKey = getMonthKey();
+            for (let day = 1; day <= daysCount; day++) {
+                deptMatrixData[monthKey][idx][day] = '';
+            }
+            saveData();
+            renderDeptTableBody();
+        }
+
+        function confirmResetAll() {
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const monthKey = getMonthKey();
+            internsList.forEach((_, idx) => {
+                for (let day = 1; day <= daysCount; day++) {
+                    matrixData[monthKey][idx][day] = '';
+                    deptMatrixData[monthKey][idx][day] = '';
+                }
+            });
+            saveData();
+            closeResetModal();
+            renderTableBody();
+            renderDeptTableBody();
+            showToast("Всі відмітки поточного місяця скинуто");
+        }
+
+        function exportToPDF() {
+            closeExportModal();
+
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const monthName = MONTH_NAMES_UA[currentMonth - 1];
+            const monthKey = getMonthKey();
+
+            const element = document.createElement('div');
+            element.className = 'pdf-export-container bg-white text-slate-900 p-3';
+            element.style.width = '1060px';
+
+            let html = `
+                <div style="text-align: center; margin-bottom: 6px;">
+                    <h2 style="font-size: 16px; font-weight: bold; color: #1e3a8a; margin: 0;">
+                        ГРАФІК ЧЕРГУВАННЯ ІНТЕРНІВ НА ${monthName.toUpperCase()} ${currentYear} РОКУ
+                    </h2>
+                    <p style="font-size: 9px; color: #475569; margin-top: 1px;">
+                        Список інтернів (${internsList.length} осіб)
+                    </p>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 8px; text-align: center; font-family: 'Inter', sans-serif;">
+                    <thead>
+                        <tr style="background-color: #1e3a8a; color: white;">
+                            <th style="border: 1px solid #334155; padding: 3px; width: 20px;">№</th>
+                            <th style="border: 1px solid #334155; padding: 3px; text-align: left; width: 180px;">ПІБ інтерна</th>
+            `;
+
+            for (let day = 1; day <= daysCount; day++) {
+                const isWknd = isWeekendDay(day);
+                const bg = isWknd ? '#be123c' : '#1e3a8a';
+                html += `<th style="border: 1px solid #334155; padding: 2px 1px; background-color: ${bg}; color: white; width: 22px;">${day}</th>`;
+            }
+
+            html += `
+                            <th style="border: 1px solid #334155; padding: 3px; width: 30px;">Змін</th>
+                        </tr>
+                        <tr style="background-color: #334155; color: #cbd5e1; font-size: 7px;">
+                            <th style="border: 1px solid #475569;"></th>
+                            <th style="border: 1px solid #475569; text-align: left; padding-left: 4px;">День тижня</th>
+            `;
+
+            for (let day = 1; day <= daysCount; day++) {
+                const wdName = UA_WEEKDAYS[getDayOfWeekIndex(day)];
+                const isWknd = isWeekendDay(day);
+                const bg = isWknd ? '#9f1239' : '#334155';
+                html += `<th style="border: 1px solid #475569; padding: 1px;">${wdName}</th>`;
+            }
+
+            html += `
+                            <th style="border: 1px solid #475569;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            const currentMatrix = matrixData[monthKey] || {};
+
+            internsList.forEach((name, idx) => {
+                const rowData = currentMatrix[idx] || {};
+                const bgRow = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
+
+                let shifts = 0;
+                for (let d = 1; d <= daysCount; d++) {
+                    if (rowData[d] === 'Ч' || rowData[d] === 'Н') shifts++;
+                }
+
+                html += `<tr style="background-color: ${bgRow};">
+                    <td style="border: 1px solid #cbd5e1; padding: 1px; font-weight: bold; color: #64748b;">${idx + 1}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 1px 3px; text-align: left; font-weight: 700; color: #1e293b;">${name}</td>
+                `;
+
+                for (let day = 1; day <= daysCount; day++) {
+                    const val = rowData[day] || '';
+                    const isWknd = isWeekendDay(day);
+
+                    let cellBg = isWknd ? '#fef2f2' : bgRow;
+                    let cellColor = '#334155';
+                    let cellWeight = 'normal';
+
+                    if (val === '+') { cellBg = '#dcfce7'; cellColor = '#15803d'; cellWeight = 'bold'; }
+                    else if (val === 'Ч') { cellBg = '#2563eb'; cellColor = '#ffffff'; cellWeight = 'bold'; }
+                    else if (val === 'Н') { cellBg = '#9333ea'; cellColor = '#ffffff'; cellWeight = 'bold'; }
+                    else if (val === 'В') { cellBg = '#fef3c7'; cellColor = '#92400e'; cellWeight = 'bold'; }
+                    else if (val === 'Х') { cellBg = '#fecdd3'; cellColor = '#9f1239'; cellWeight = 'bold'; }
+
+                    html += `<td style="border: 1px solid #cbd5e1; padding: 1px; background-color: ${cellBg}; color: ${cellColor}; font-weight: ${cellWeight};">${val}</td>`;
+                }
+
+                html += `<td style="border: 1px solid #cbd5e1; padding: 1px; font-weight: bold; color: #1e3a8a; background-color: #eff6ff;">${shifts}</td></tr>`;
+            });
+
+            html += `
+                    <tr style="background-color: #e2e8f0; font-weight: bold;">
+                        <td style="border: 1px solid #94a3b8; padding: 2px;" colspan="2">Чергових на день:</td>
+            `;
+
+            let grandTotal = 0;
+            for (let day = 1; day <= daysCount; day++) {
+                let dayCount = 0;
+                internsList.forEach((_, idx) => {
+                    const v = (currentMatrix[idx] || {})[day];
+                    if (v === 'Ч' || v === 'Н') dayCount++;
+                });
+                grandTotal += dayCount;
+                const bg = dayCount === 0 ? '#ffe4e6' : '#e2e8f0';
+                const fg = dayCount === 0 ? '#e11d48' : '#0f172a';
+                html += `<td style="border: 1px solid #94a3b8; padding: 1px; background-color: ${bg}; color: ${fg};">${dayCount}</td>`;
+            }
+
+            html += `<td style="border: 1px solid #94a3b8; padding: 2px; background-color: #dbeafe; color: #1e3a8a;">${grandTotal}</td></tr>
+                    </tbody>
+                </table>
+                <div style="margin-top: 6px; font-size: 7px; color: #64748b; display: flex; justify-content: space-between;">
+                    <span>Позначення: [+] Доступний | [Ч] Чергування | [Н] Нічна зміна | [В] Вихідний | [Х] Хворий</span>
+                    <span>Згенеровано: ${new Date().toLocaleDateString('uk-UA')}</span>
+                </div>
+            `;
+
+            element.innerHTML = html;
+            document.body.appendChild(element);
+
+            const opt = {
+                margin: [4, 4, 4, 4],
+                filename: `Графік_чергувань_${monthName}_${currentYear}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                document.body.removeChild(element);
+            }).catch(err => {
+                console.error("PDF generation error:", err);
+                if (element.parentNode) document.body.removeChild(element);
+            });
+        }
+
+        function exportDeptToPDF() {
+            closeExportModal();
+
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const monthName = MONTH_NAMES_UA[currentMonth - 1];
+            const monthKey = getMonthKey();
+
+            const element = document.createElement('div');
+            element.className = 'pdf-export-container bg-white text-slate-900 p-3';
+            element.style.width = '1060px';
+
+            let html = `
+                <div style="text-align: center; margin-bottom: 6px;">
+                    <h2 style="font-size: 16px; font-weight: bold; color: #4338ca; margin: 0;">
+                        ЧЕРГУВАННЯ ПО КАФЕДРІ НА ${monthName.toUpperCase()} ${currentYear} РОКУ
+                    </h2>
+                    <p style="font-size: 9px; color: #475569; margin-top: 1px;">
+                        Кафедральний графік чергувань та контактні дані інтернів
+                    </p>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 8px; text-align: center; font-family: 'Inter', sans-serif;">
+                    <thead>
+                        <tr style="background-color: #3730a3; color: white;">
+                            <th style="border: 1px solid #334155; padding: 3px; width: 20px;">№</th>
+                            <th style="border: 1px solid #334155; padding: 3px; text-align: left; width: 160px;">ПІБ інтерна</th>
+                            <th style="border: 1px solid #334155; padding: 3px; text-align: left; width: 80px;">Телефон</th>
+            `;
+
+            for (let day = 1; day <= daysCount; day++) {
+                const isWknd = isWeekendDay(day);
+                const bg = isWknd ? '#be123c' : '#3730a3';
+                html += `<th style="border: 1px solid #334155; padding: 2px 1px; background-color: ${bg}; color: white; width: 22px;">${day}</th>`;
+            }
+
+            html += `
+                            <th style="border: 1px solid #334155; padding: 3px; width: 30px;">Змін</th>
+                        </tr>
+                        <tr style="background-color: #334155; color: #cbd5e1; font-size: 7px;">
+                            <th style="border: 1px solid #475569;" colspan="3"></th>
+            `;
+
+            for (let day = 1; day <= daysCount; day++) {
+                const wdName = UA_WEEKDAYS[getDayOfWeekIndex(day)];
+                const isWknd = isWeekendDay(day);
+                const bg = isWknd ? '#9f1239' : '#334155';
+                html += `<th style="border: 1px solid #475569; padding: 1px;">${wdName}</th>`;
+            }
+
+            html += `
+                            <th style="border: 1px solid #475569;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            const currentDeptMatrix = deptMatrixData[monthKey] || {};
+
+            internsList.forEach((name, idx) => {
+                const rowData = currentDeptMatrix[idx] || {};
+                const bgRow = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
+                const phone = internPhones[name] || '';
+
+                let shifts = 0;
+                for (let d = 1; d <= daysCount; d++) {
+                    if (rowData[d] === 'К') shifts++;
+                }
+
+                html += `<tr style="background-color: ${bgRow};">
+                    <td style="border: 1px solid #cbd5e1; padding: 1px; font-weight: bold; color: #64748b;">${idx + 1}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 1px 3px; text-align: left; font-weight: 700; color: #1e293b;">${name}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 1px 3px; text-align: left; color: #475569;">${phone}</td>
+                `;
+
+                for (let day = 1; day <= daysCount; day++) {
+                    const val = rowData[day] || '';
+                    const isWknd = isWeekendDay(day);
+
+                    let cellBg = isWknd ? '#fef2f2' : bgRow;
+                    let cellColor = '#334155';
+                    let cellWeight = 'normal';
+
+                    if (val === 'К') { cellBg = '#4f46e5'; cellColor = '#ffffff'; cellWeight = 'bold'; }
+                    else if (val === '+') { cellBg = '#dcfce7'; cellColor = '#15803d'; cellWeight = 'bold'; }
+                    else if (val === 'Н') { cellBg = '#9333ea'; cellColor = '#ffffff'; cellWeight = 'bold'; }
+                    else if (val === 'В') { cellBg = '#fef3c7'; cellColor = '#92400e'; cellWeight = 'bold'; }
+                    else if (val === 'Х') { cellBg = '#fecdd3'; cellColor = '#9f1239'; cellWeight = 'bold'; }
+
+                    html += `<td style="border: 1px solid #cbd5e1; padding: 1px; background-color: ${cellBg}; color: ${cellColor}; font-weight: ${cellWeight};">${val}</td>`;
+                }
+
+                html += `<td style="border: 1px solid #cbd5e1; padding: 1px; font-weight: bold; color: #3730a3; background-color: #e0e7ff;">${shifts}</td></tr>`;
+            });
+
+            html += `
+                    <tr style="background-color: #e2e8f0; font-weight: bold;">
+                        <td style="border: 1px solid #94a3b8; padding: 2px;" colspan="3">Чергових по кафедрі на день:</td>
+            `;
+
+            let grandTotal = 0;
+            for (let day = 1; day <= daysCount; day++) {
+                let dayCount = 0;
+                internsList.forEach((_, idx) => {
+                    const v = (currentDeptMatrix[idx] || {})[day];
+                    if (v === 'К') dayCount++;
+                });
+                grandTotal += dayCount;
+                html += `<td style="border: 1px solid #94a3b8; padding: 1px; background-color: #e2e8f0; color: #0f172a;">${dayCount}</td>`;
+            }
+
+            html += `<td style="border: 1px solid #94a3b8; padding: 2px; background-color: #c7d2fe; color: #312e81;">${grandTotal}</td></tr>
+                    </tbody>
+                </table>
+                <div style="margin-top: 6px; font-size: 7px; color: #64748b; display: flex; justify-content: space-between;">
+                    <span>Позначення: [К] Черговий по кафедрі | [+] Доступний | [Н] Нічна зміна | [В] Вихідний | [Х] Хворий</span>
+                    <span>Згенеровано: ${new Date().toLocaleDateString('uk-UA')}</span>
+                </div>
+            `;
+
+            element.innerHTML = html;
+            document.body.appendChild(element);
+
+            const opt = {
+                margin: [4, 4, 4, 4],
+                filename: `Чергові_по_кафедрі_${monthName}_${currentYear}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                document.body.removeChild(element);
+            }).catch(err => {
+                console.error("PDF generation error:", err);
+                if (element.parentNode) document.body.removeChild(element);
+            });
+        }
+
+        function exportToCSV() {
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const monthName = MONTH_NAMES_UA[currentMonth - 1];
+            const monthKey = getMonthKey();
+
+            let csv = '\uFEFF';
+            csv += `№;ПІБ інтерна (${monthName} ${currentYear});`;
+
+            for (let day = 1; day <= daysCount; day++) {
+                const wd = UA_WEEKDAYS[getDayOfWeekIndex(day)];
+                csv += `"${day} (${wd})";`;
+            }
+            csv += 'Всього змін\n';
+
+            internsList.forEach((name, idx) => {
+                csv += `${idx + 1};"${name}";`;
+                for (let day = 1; day <= daysCount; day++) {
+                    csv += `"${(matrixData[monthKey][idx] && matrixData[monthKey][idx][day]) || ''}";`;
+                }
+                csv += `${calculateInternShifts(idx)}\n`;
+            });
+
+            csv += `\nЧЕРГОВІ ПО КАФЕДРІ НА ${monthName.toUpperCase()} ${currentYear}\n`;
+            csv += `№;ПІБ інтерна;Телефон;`;
+            for (let day = 1; day <= daysCount; day++) {
+                const wd = UA_WEEKDAYS[getDayOfWeekIndex(day)];
+                csv += `"${day} (${wd})";`;
+            }
+            csv += 'Всього чергувань по кафедрі\n';
+
+            internsList.forEach((name, idx) => {
+                const phone = internPhones[name] || '';
+                csv += `${idx + 1};"${name}";"${phone}";`;
+                for (let day = 1; day <= daysCount; day++) {
+                    csv += `"${(deptMatrixData[monthKey][idx] && deptMatrixData[monthKey][idx][day]) || ''}";`;
+                }
+                csv += `${calculateInternDeptShifts(idx)}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Графік_чергувань_${monthName}_${currentYear}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            closeExportModal();
+        }
+
+        window.onload = function() {
+            initData();
+            updateHeaderUI();
+            renderHeader();
+            renderTableBody();
+            renderDeptHeader();
+            renderDeptTableBody();
+            initToolPickers();
+            setupCellInteractions();
+        };
+    </script>
+</body>
+</html>
