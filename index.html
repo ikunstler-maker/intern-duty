@@ -291,39 +291,40 @@
   </main>
 
   <!-- Dedicated Container for Crisp A4 Landscape PDF Generation (Offscreen) -->
-  <div id="pdfRenderWrapper" class="fixed -left-[9999px] top-0 bg-white text-slate-900 font-sans p-6 w-[1120px]">
-    <div id="pdfPrintContent" class="space-y-4">
+  <div style="position: absolute; left: -9999px; top: -9999px; width: 1160px; pointer-events: none;">
+    <div id="pdfPrintContent" style="width: 1160px; min-width: 1160px; max-width: 1160px; background: #ffffff; color: #0f172a; padding: 20px; box-sizing: border-box; font-family: 'Inter', -apple-system, sans-serif;">
+      
       <!-- Header -->
-      <div class="border-b-2 border-slate-800 pb-3 flex justify-between items-end">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px;">
         <div>
-          <h2 class="text-xl font-bold tracking-tight text-slate-900 uppercase">Графік чергування працівників</h2>
-          <p id="pdfPeriodTitle" class="text-sm font-semibold text-indigo-800 mt-0.5">Жовтень 2026 року</p>
+          <h2 style="font-size: 16px; font-weight: 800; text-transform: uppercase; color: #0f172a; margin: 0; letter-spacing: -0.2px;">Графік чергування працівників</h2>
+          <p id="pdfPeriodTitle" style="font-size: 11px; font-weight: 600; color: #3730a3; margin: 2px 0 0 0;">Жовтень 2026 року</p>
         </div>
-        <div class="text-right text-[11px] text-slate-500 leading-tight">
-          <p>Сформовано автоматично</p>
-          <p id="pdfGeneratedDate"></p>
+        <div style="text-align: right; font-size: 9px; color: #64748b; line-height: 1.2;">
+          <p style="margin: 0;">Сформовано автоматично</p>
+          <p id="pdfGeneratedDate" style="margin: 0;"></p>
         </div>
       </div>
 
       <!-- PDF Table Container -->
-      <div id="pdfTableTarget" class="overflow-hidden border border-slate-300 rounded-lg">
+      <div id="pdfTableTarget" style="border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; margin-bottom: 12px;">
         <!-- Rendered dynamically -->
       </div>
 
       <!-- Legend and Signatures -->
-      <div class="pt-3 border-t border-slate-200 flex justify-between items-start text-xs text-slate-600">
-        <div class="space-y-1">
-          <p class="font-bold text-slate-800">Умовні позначення:</p>
-          <p><span class="font-semibold text-amber-700">В</span> — вихідний день</p>
-          <p><span class="font-semibold text-emerald-700">Ч</span> — чергування (або робочий день)</p>
+      <div style="border-top: 1px solid #e2e8f0; padding-top: 10px; display: flex; justify-content: space-between; align-items: flex-start; font-size: 10px; color: #475569;">
+        <div style="line-height: 1.4;">
+          <p style="font-weight: 700; color: #1e293b; margin: 0 0 2px 0;">Умовні позначення:</p>
+          <p style="margin: 0;"><span style="font-weight: 700; color: #b45309;">В</span> — вихідний день &nbsp;|&nbsp; <span style="font-weight: 700; color: #047857;">Ч</span> — чергування</p>
         </div>
-        <div class="flex gap-12 text-xs">
-          <div class="space-y-6">
-            <p>Керівник підрозділу: _________________</p>
-            <p>Відповідальний за графік: _________________</p>
+        <div style="display: flex; gap: 40px; font-size: 10px;">
+          <div>
+            <p style="margin: 0 0 16px 0;">Керівник підрозділу: _________________</p>
+            <p style="margin: 0;">Відповідальний за графік: _________________</p>
           </div>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -519,6 +520,31 @@
       });
     }
 
+    function ensureAllWorkersPresent(workersList, year, month) {
+      const defaultWorkers = createDefaultMonthData(year, month);
+      if (!Array.isArray(workersList) || workersList.length === 0) {
+        return defaultWorkers;
+      }
+      const existingMap = new Map();
+      workersList.forEach(w => {
+        if (w && w.id) existingMap.set(w.id, w);
+      });
+
+      return BASE_WORKERS.map(baseW => {
+        const existing = existingMap.get(baseW.id);
+        const def = defaultWorkers.find(d => d.id === baseW.id);
+        if (existing) {
+          return {
+            id: baseW.id,
+            name: baseW.name,
+            duty: existing.duty || baseW.duty,
+            days: existing.days || (def ? def.days : {})
+          };
+        }
+        return def || { id: baseW.id, name: baseW.name, duty: baseW.duty, days: {} };
+      });
+    }
+
     function loadAllData() {
       const stored = localStorage.getItem(STORAGE_KEY_V3);
       if (stored) {
@@ -558,6 +584,9 @@
       const key = getStoragePeriodKey(currentYear, currentMonth);
       if (!allMonthsStore[key]) {
         allMonthsStore[key] = createDefaultMonthData(currentYear, currentMonth);
+      } else {
+        // Guarantee all 12 workers are present and healthy
+        allMonthsStore[key] = ensureAllWorkersPresent(allMonthsStore[key], currentYear, currentMonth);
       }
       scheduleData = allMonthsStore[key];
 
@@ -1022,50 +1051,52 @@
         const monthName = MONTH_NAMES_UA[currentMonth];
         const daysInMonth = getDaysInMonth(currentYear, currentMonth);
 
+        // Ensure all 12 workers are present and fully mapped
+        const exportWorkers = ensureAllWorkersPresent(scheduleData, currentYear, currentMonth);
+
         // Update PDF Metadata
         document.getElementById('pdfPeriodTitle').textContent = `${monthName} ${currentYear} року`;
         document.getElementById('pdfGeneratedDate').textContent = `Дата: ${new Date().toLocaleDateString('uk-UA')} ${new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
 
-        // Build clean PDF Table HTML
         let tableHtml = `
-          <table style="width: 100%; border-collapse: collapse; font-size: 9px; text-align: center;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 8.5px; text-align: center; table-layout: fixed;">
             <thead>
-              <tr style="background-color: #f1f5f9; color: #1e293b; border-bottom: 2px solid #cbd5e1;">
-                <th style="padding: 5px 3px; border: 1px solid #cbd5e1; width: 22px;">№</th>
-                <th style="padding: 5px 6px; border: 1px solid #cbd5e1; text-align: left; width: 110px;">Працівник</th>
-                <th style="padding: 5px 6px; border: 1px solid #cbd5e1; text-align: left; width: 150px;">Черговий / Заміна</th>
+              <tr style="background-color: #f1f5f9; color: #1e293b; border-bottom: 2px solid #cbd5e1; height: 26px;">
+                <th style="padding: 2px; border: 1px solid #cbd5e1; width: 24px;">№</th>
+                <th style="padding: 2px 4px; border: 1px solid #cbd5e1; text-align: left; width: 120px;">Працівник</th>
+                <th style="padding: 2px 4px; border: 1px solid #cbd5e1; text-align: left; width: 120px;">Черговий / Заміна</th>
         `;
 
         for (let d = 1; d <= daysInMonth; d++) {
           const dow = getDayOfWeek(currentYear, currentMonth, d);
           const weekend = isWeekend(currentYear, currentMonth, d);
           tableHtml += `
-            <th style="padding: 4px 1px; border: 1px solid #cbd5e1; ${weekend ? 'background-color: #fee2e2; color: #991b1b; font-weight: bold;' : ''}">
-              <div>${d}</div>
-              <div style="font-size: 7px; opacity: 0.8;">${dow}</div>
+            <th style="padding: 1px; border: 1px solid #cbd5e1; ${weekend ? 'background-color: #fee2e2; color: #991b1b; font-weight: bold;' : ''}">
+              <div style="font-size: 8px; line-height: 1;">${d}</div>
+              <div style="font-size: 6.5px; opacity: 0.8; line-height: 1;">${dow}</div>
             </th>
           `;
         }
 
         tableHtml += `
-                <th style="padding: 5px 3px; border: 1px solid #cbd5e1; background-color: #fef3c7; color: #92400e; font-weight: bold; width: 40px;">Вих. (В)</th>
+                <th style="padding: 2px; border: 1px solid #cbd5e1; background-color: #fef3c7; color: #92400e; font-weight: bold; width: 34px;">В</th>
               </tr>
             </thead>
             <tbody>
         `;
 
-        scheduleData.forEach((worker, idx) => {
+        exportWorkers.forEach((worker, idx) => {
           let vCount = 0;
           const bgRow = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
           tableHtml += `
-            <tr style="background-color: ${bgRow};">
-              <td style="padding: 4px 2px; border: 1px solid #cbd5e1; font-weight: 500;">${idx + 1}</td>
-              <td style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left; font-weight: 600; color: #0f172a;">${worker.name}</td>
-              <td style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left; color: #334155; font-size: 8.5px;">${worker.duty || ''}</td>
+            <tr style="background-color: ${bgRow}; height: 21px;">
+              <td style="padding: 2px 1px; border: 1px solid #cbd5e1; font-weight: 500;">${idx + 1}</td>
+              <td style="padding: 2px 4px; border: 1px solid #cbd5e1; text-align: left; font-weight: 600; color: #0f172a; white-space: nowrap;">${worker.name}</td>
+              <td style="padding: 2px 4px; border: 1px solid #cbd5e1; text-align: left; color: #334155; font-size: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${worker.duty || ''}</td>
           `;
 
           for (let d = 1; d <= daysInMonth; d++) {
-            const val = worker.days[d] || '';
+            const val = (worker.days && worker.days[d]) ? worker.days[d] : '';
             if (val === 'В') vCount++;
             let cellBg = '';
             let cellColor = '#0f172a';
@@ -1078,14 +1109,14 @@
             }
 
             tableHtml += `
-              <td style="padding: 3px 0; border: 1px solid #cbd5e1; ${cellBg} color: ${cellColor};">
+              <td style="padding: 1px 0; border: 1px solid #cbd5e1; ${cellBg} color: ${cellColor}; font-size: 8px;">
                 ${val}
               </td>
             `;
           }
 
           tableHtml += `
-              <td style="padding: 4px 2px; border: 1px solid #cbd5e1; background-color: #fffbeb; font-weight: bold; color: #92400e;">${vCount}</td>
+              <td style="padding: 2px 1px; border: 1px solid #cbd5e1; background-color: #fffbeb; font-weight: bold; color: #92400e;">${vCount}</td>
             </tr>
           `;
         });
@@ -1097,15 +1128,21 @@
 
         document.getElementById('pdfTableTarget').innerHTML = tableHtml;
 
-        // Render PDF via html2pdf
-        showToast("Створення PDF...", "⏳");
+        showToast("Створення PDF (всі 12 працівників)...", "⏳");
         const element = document.getElementById('pdfPrintContent');
         const opt = {
-          margin: [8, 8, 8, 8],
+          margin: [6, 6, 6, 6],
           filename: `Графік_чергування_${monthName}_${currentYear}.pdf`,
           image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, logging: false },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            windowWidth: 1160,
+            width: 1160
+          },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+          pagebreak: { mode: 'avoid-all' }
         };
 
         html2pdf().set(opt).from(element).save().then(() => {
