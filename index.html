@@ -1,2284 +1,1297 @@
 <!DOCTYPE html>
-<html lang="uk" class="h-full bg-slate-100">
+<html lang="uk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Графік чергувань інтернів</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Library for single-page PDF generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        navy: {
-                            700: '#1e293b',
-                            800: '#1e3a8a',
-                            900: '#0f172a',
-                        }
-                    }
-                }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Графік чергування — Жовтень 2026</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- html2pdf.js for clean styled PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
             }
+          }
         }
-    </script>
-    <style>
-        :root {
-            --num-col-width: 32px;
-            --name-col-width: 230px;
-            --phone-col-width: 110px;
-        }
+      }
+    }
+  </script>
 
-        /* Mobile specific overrides (<640px) */
-        @media (max-width: 639px) {
-            :root {
-                --num-col-width: 24px !important;
-                --name-col-width: 125px !important;
-                --phone-col-width: 80px !important;
-            }
+  <style>
+    /* Mobile-optimized touch scrolling */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    
+    /* Touch target feedback */
+    .touch-press {
+      transition: transform 0.1s ease, background-color 0.15s ease;
+    }
+    .touch-press:active {
+      transform: scale(0.96);
+    }
 
-            /* Compact mode on mobile vertical screens */
-            .compact-mode {
-                --name-col-width: 95px !important;
-            }
+    /* Fixed table styling for smartphones */
+    .sticky-col {
+      position: sticky;
+      left: 0;
+      z-index: 10;
+    }
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .sticky-corner {
+      position: sticky;
+      left: 0;
+      top: 0;
+      z-index: 30;
+    }
 
-            .sticky-col-name input, .sticky-col-phone input {
-                font-size: 10px !important;
-                padding-left: 2px !important;
-                padding-right: 2px !important;
-            }
-
-            .cell-slot, .dept-cell-slot {
-                min-width: 28px !important;
-                font-size: 11px !important;
-            }
-
-            .day-col-header {
-                min-width: 28px !important;
-            }
-        }
-
-        /* Hide scrollbars for slick mobile touch horizontal scrolling */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-
-        /* Desktop custom scrollbars */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-
-        /* Dynamic Sticky positioning layout */
-        .sticky-col-num {
-            position: sticky;
-            left: 0;
-            z-index: 20;
-            width: var(--num-col-width);
-            min-width: var(--num-col-width);
-        }
-        .sticky-col-name {
-            position: sticky;
-            left: var(--num-col-width);
-            z-index: 20;
-            width: var(--name-col-width);
-            min-width: var(--name-col-width);
-        }
-        .sticky-col-phone {
-            position: sticky;
-            left: calc(var(--num-col-width) + var(--name-col-width));
-            z-index: 20;
-            width: var(--phone-col-width);
-            min-width: var(--phone-col-width);
-        }
-        .sticky-header {
-            position: sticky;
-            top: 0;
-            z-index: 30;
-        }
-        .sticky-corner {
-            position: sticky;
-            top: 0;
-            left: 0;
-            z-index: 40;
-        }
-
-        /* Prevent unwanted page drag text selection during mobile touch swipe */
-        .no-select {
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: pan-y;
-        }
-
-        /* Active Tab Styling */
-        .tab-btn.active-tab {
-            background-color: #ffffff;
-            color: #1e3a8a;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-            border-bottom: 2px solid #2563eb;
-            font-weight: 700;
-        }
-
-        .view-mode-btn.active-mode {
-            background-color: #2563eb;
-            color: #ffffff;
-            font-weight: 600;
-        }
-
-        /* Toast Animation */
-        @keyframes slideIn {
-            from { transform: translateY(100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .toast-animate {
-            animation: slideIn 0.3s ease-out forwards;
-        }
-
-        /* Print formatting */
-        @media print {
-            .no-print {
-                display: none !important;
-            }
-            body {
-                background: white;
-                color: black;
-                font-size: 10pt;
-            }
-            .print-table-container {
-                overflow: visible !important;
-                max-height: none !important;
-                box-shadow: none !important;
-                border: none !important;
-            }
-            table {
-                width: 100% !important;
-                border-collapse: collapse !important;
-            }
-            th, td {
-                border: 1px solid #94a3b8 !important;
-                padding: 2px 4px !important;
-                font-size: 8pt !important;
-            }
-        }
-    </style>
+    @media print {
+      body {
+        background: white !important;
+        color: black !important;
+        padding-bottom: 0 !important;
+      }
+      header, #editModal, #statsModal, #toast, .no-print {
+        display: none !important;
+      }
+    }
+  </style>
 </head>
-<body class="h-full flex flex-col font-sans text-slate-800 bg-slate-100 antialiased no-select min-h-screen pb-16 sm:pb-0">
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen pb-24 select-none antialiased">
 
-    <!-- TOP APPLICATION HEADER -->
-    <header class="bg-navy-800 text-white shadow-md no-print sticky top-0 z-40">
-        <div class="w-full px-2 sm:px-6 py-2 flex flex-wrap justify-between items-center gap-2">
-            <!-- Title & Badge -->
-            <div class="flex items-center space-x-2">
-                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300 font-bold text-base sm:text-xl shrink-0">
-                    <i class="fa-solid fa-calendar-days"></i>
-                </div>
-                <div>
-                    <h1 class="text-sm sm:text-lg font-bold tracking-tight text-white flex items-center gap-1.5" id="header-month-title">
-                        Чергування на Вересень
-                        <span class="text-[10px] sm:text-xs font-normal px-1.5 py-0.5 rounded-full bg-blue-500/30 border border-blue-400/30 text-blue-200" id="header-year-badge">
-                            2026 р.
-                        </span>
-                    </h1>
-                    <p class="text-[10px] text-blue-200/80 hidden xs:block">Чергування та розклад інтернів</p>
-                </div>
-            </div>
-
-            <!-- Month Switcher Controls -->
-            <div class="flex items-center gap-1 bg-slate-900/80 p-1 rounded-xl border border-blue-400/20 shadow-inner">
-                <button onclick="changeMonth(-1)" class="w-7 h-7 rounded-lg bg-blue-500/20 hover:bg-blue-500/40 active:scale-95 text-blue-200 transition flex items-center justify-center" title="Попередній місяць">
-                    <i class="fa-solid fa-chevron-left text-xs"></i>
-                </button>
-                <div class="flex items-center gap-1">
-                    <select id="month-select" onchange="onMonthSelectChange()" class="bg-slate-800 text-white font-semibold text-xs py-1 px-1.5 rounded-lg border border-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer">
-                        <option value="1">Січ</option>
-                        <option value="2">Лют</option>
-                        <option value="3">Бер</option>
-                        <option value="4">Квi</option>
-                        <option value="5">Тра</option>
-                        <option value="6">Чер</option>
-                        <option value="7">Лип</option>
-                        <option value="8">Сер</option>
-                        <option value="9" selected>Вер</option>
-                        <option value="10">Жов</option>
-                        <option value="11">Лис</option>
-                        <option value="12">Гру</option>
-                    </select>
-                    <select id="year-select" onchange="onMonthSelectChange()" class="bg-slate-800 text-white font-semibold text-xs py-1 px-1 rounded-lg border border-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer">
-                        <option value="2025">2025</option>
-                        <option value="2026" selected>2026</option>
-                        <option value="2027">2027</option>
-                        <option value="2028">2028</option>
-                    </select>
-                </div>
-                <button onclick="changeMonth(1)" class="w-7 h-7 rounded-lg bg-blue-500/20 hover:bg-blue-500/40 active:scale-95 text-blue-200 transition flex items-center justify-center" title="Наступний місяць">
-                    <i class="fa-solid fa-chevron-right text-xs"></i>
-                </button>
-            </div>
-
-            <!-- Header Action Buttons -->
-            <div class="flex items-center gap-1.5 text-xs">
-                <button onclick="openExportModal()" class="px-2.5 py-1.5 rounded-lg bg-rose-700 hover:bg-rose-800 active:scale-95 text-white font-medium transition flex items-center gap-1 border border-rose-600 shadow-sm">
-                    <i class="fa-solid fa-file-pdf text-xs text-rose-200"></i>
-                    <span>Експорт</span>
-                </button>
-                <button onclick="autoFillWeekdaysAvailable()" class="hidden sm:flex px-2.5 py-1.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-700 active:scale-95 text-emerald-100 font-medium transition items-center gap-1 border border-emerald-600">
-                    <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
-                    <span>Заповнити будні</span>
-                </button>
-                <button onclick="showResetConfirmation()" class="px-2 py-1.5 rounded-lg bg-rose-900/60 hover:bg-rose-800 active:scale-95 text-rose-200 font-medium transition flex items-center gap-1 border border-rose-700/50">
-                    <i class="fa-solid fa-rotate-right text-xs"></i>
-                    <span class="hidden md:inline">Скинути</span>
-                </button>
-            </div>
+  <!-- Top App Bar -->
+  <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 space-y-2">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold text-base shadow-inner">
+            📅
+          </div>
+          <div>
+            <h1 class="text-sm sm:text-base font-bold leading-tight flex items-center gap-1.5">
+              Графік чергувань
+            </h1>
+            <p class="text-[10px] sm:text-[11px] text-indigo-200">Редагування з телефону та експорт</p>
+          </div>
         </div>
-    </header>
-
-    <!-- TAB NAVIGATION & MOBILE VIEW MODES BAR -->
-    <nav class="bg-slate-200 border-b border-slate-300 px-2 sm:px-6 py-1.5 no-print flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-1.5">
-        <!-- Duty Tab Switcher -->
-        <div class="flex items-center gap-1 overflow-x-auto no-scrollbar">
-            <button id="tab-btn-matrix" onclick="switchTab('matrix')" class="tab-btn active-tab px-2.5 sm:px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0">
-                <i class="fa-solid fa-table-cells text-blue-600"></i>
-                <span>Основний графік</span>
-                <span class="px-1.5 py-0.2 text-[10px] bg-blue-100 text-blue-800 rounded-full font-bold" id="tab-interns-count-badge">13</span>
-            </button>
-            <button id="tab-btn-dept" onclick="switchTab('dept')" class="tab-btn px-2.5 sm:px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0">
-                <i class="fa-solid fa-hospital-user text-indigo-600"></i>
-                <span>Чергові по кафедрі</span>
-                <span class="px-1.5 py-0.2 text-[10px] bg-indigo-100 text-indigo-800 rounded-full font-bold" id="tab-dept-count-badge">13</span>
-            </button>
-        </div>
-
-        <!-- View Display Mode Switcher (Ideal for Mobile Vertical Screens) -->
-        <div class="flex items-center bg-slate-300/80 p-0.5 rounded-lg text-xs self-end sm:self-auto border border-slate-300">
-            <button onclick="setMobileViewMode('table')" id="view-mode-table" class="view-mode-btn active-mode px-2 py-1 rounded-md transition flex items-center gap-1 text-[11px]">
-                <i class="fa-solid fa-table-list"></i>
-                <span>Таблиця</span>
-            </button>
-            <button onclick="setMobileViewMode('days')" id="view-mode-days" class="view-mode-btn px-2 py-1 rounded-md text-slate-700 transition flex items-center gap-1 text-[11px]">
-                <i class="fa-solid fa-calendar-day"></i>
-                <span>По днях</span>
-            </button>
-            <button onclick="setMobileViewMode('interns')" id="view-mode-interns" class="view-mode-btn px-2 py-1 rounded-md text-slate-700 transition flex items-center gap-1 text-[11px]">
-                <i class="fa-solid fa-user-gear"></i>
-                <span>По інтернах</span>
-            </button>
-        </div>
-    </nav>
-
-    <!-- MAIN CONTENT CONTAINER -->
-    <main class="flex-1 w-full p-1.5 sm:p-4 flex flex-col gap-2.5 sm:gap-4 max-w-full">
-
-        <!-- TAB 1: MAIN MATRIX SCHEDULE -->
-        <div id="tab-content-matrix" class="flex flex-col gap-2.5 sm:gap-4">
-
-            <!-- Control Bar & Brush Selector -->
-            <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-2 sm:p-3.5 no-print flex flex-col md:flex-row justify-between items-stretch md:items-center gap-2">
-                <!-- Tool Picker (Touch Horizontal Scrollable) -->
-                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 w-full no-scrollbar">
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 shrink-0 flex items-center gap-1">
-                        <i class="fa-solid fa-paint-brush text-blue-600"></i> Інструмент:
-                    </span>
-                    <div class="flex items-center gap-1 shrink-0" id="tool-picker">
-                        <button data-tool="" class="tool-btn active px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border transition shrink-0">
-                            <span class="w-2.5 h-2.5 rounded-full border border-slate-400 bg-white inline-block"></span>
-                            <span>Очистити</span>
-                        </button>
-                        <button data-tool="+" class="tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition shrink-0">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                            <span>[ + ] Може</span>
-                        </button>
-                        <button data-tool="Ч" class="tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-blue-400 bg-blue-600 text-white hover:bg-blue-700 transition shrink-0">
-                            <span class="w-2 h-2 rounded-full bg-white inline-block"></span>
-                            <span>[ Ч ] Чергування</span>
-                        </button>
-                        <button data-tool="Н" class="tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-purple-400 bg-purple-600 text-white hover:bg-purple-700 transition shrink-0">
-                            <span class="w-2 h-2 rounded-full bg-white inline-block"></span>
-                            <span>[ Н ] Нічна зміна</span>
-                        </button>
-                        <button data-tool="В" class="tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-amber-300 bg-amber-100 text-amber-900 hover:bg-amber-200 transition shrink-0">
-                            <span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
-                            <span>[ В ] Вихідний</span>
-                        </button>
-                        <button data-tool="Х" class="tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-rose-300 bg-rose-100 text-rose-900 hover:bg-rose-200 transition shrink-0">
-                            <span class="w-2 h-2 rounded-full bg-rose-600 inline-block"></span>
-                            <span>[ Х ] Хворий</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Mobile Quick Actions & Compact Name Toggle -->
-                <div class="flex items-center justify-between sm:justify-end gap-1.5 border-t md:border-t-0 pt-1.5 md:pt-0 border-slate-100 text-xs shrink-0">
-                    <button onclick="toggleCompactNames()" id="btn-toggle-compact" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition flex items-center gap-1 text-[11px]" title="Зменшити ширину ПІБ для вертикальних екранів">
-                        <i class="fa-solid fa-compress text-blue-600"></i>
-                        <span id="compact-toggle-text">Скоротити ПІБ</span>
-                    </button>
-                    
-                    <!-- Quick Horizontal Scroll Controls for Mobile Tables -->
-                    <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                        <button onclick="scrollMatrix(-200)" class="px-2 py-0.5 bg-white rounded border border-slate-300 text-slate-700 font-bold active:bg-slate-200" title="Прокрутити вліво">
-                            ◄ 7д
-                        </button>
-                        <button onclick="scrollMatrix(0)" class="px-1.5 py-0.5 bg-white rounded border border-slate-300 text-slate-700 text-[10px] active:bg-slate-200" title="Початок">
-                            Сьогодні
-                        </button>
-                        <button onclick="scrollMatrix(200)" class="px-2 py-0.5 bg-white rounded border border-slate-300 text-slate-700 font-bold active:bg-slate-200" title="Прокрутити вправо">
-                            7д ►
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- MATRIX TABLE CONTAINER (MODE 1: TABLE) -->
-            <section id="matrix-table-container-wrapper" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col print-table-container">
-                <div class="overflow-x-auto relative" id="matrix-scroll-container">
-                    <table class="w-full table-fixed border-collapse text-xs text-center" id="schedule-table">
-                        <thead>
-                            <!-- Row 1: Dates -->
-                            <tr class="bg-navy-800 text-white font-semibold divide-x divide-slate-700 sticky-header">
-                                <th class="sticky-corner bg-navy-800 px-1 py-2 text-center border-b border-slate-700 sticky-col-num">№</th>
-                                <th class="sticky-header bg-navy-800 px-2 py-2 text-left border-b border-slate-700 sticky-col-name"> ПІБ інтерна </th>
-                                <th id="day-headers-anchor" class="hidden"></th>
-                                <th class="px-1 py-2 w-12 bg-navy-800 text-center border-b border-slate-700 font-bold text-blue-200 text-[11px]"> Всього<br>змін </th>
-                                <th class="px-2 py-2 w-28 text-left bg-navy-800 border-b border-slate-700 no-print"> Дії </th>
-                            </tr>
-                            <!-- Row 2: Weekdays -->
-                            <tr class="bg-slate-700 text-slate-200 divide-x divide-slate-600 font-medium text-[11px] sticky-header" style="top:33px;">
-                                <th class="sticky-corner bg-slate-700 border-b border-slate-600 sticky-col-num"></th>
-                                <th class="sticky-col-name bg-slate-700 border-b border-slate-600 text-left px-1.5 py-1 text-slate-300 font-normal italic flex justify-between items-center gap-1">
-                                    <span id="interns-count-text">13 осіб</span>
-                                    <button onclick="openAddInternModal()" class="text-[10px] bg-blue-500/40 hover:bg-blue-500/60 text-white px-1 py-0.5 rounded font-medium border border-blue-400/30 transition flex items-center gap-0.5 no-print">
-                                        <i class="fa-solid fa-user-plus text-[9px]"></i> +Інтерн
-                                    </button>
-                                </th>
-                                <th id="weekday-headers-anchor" class="hidden"></th>
-                                <th class="bg-slate-700 border-b border-slate-600 text-center text-slate-300">Ч+Н</th>
-                                <th class="bg-slate-700 border-b border-slate-600 no-print"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="schedule-tbody" class="divide-y divide-slate-200 bg-white">
-                            <!-- Dynamic rows -->
-                        </tbody>
-                        <tfoot class="bg-slate-100 font-bold divide-y divide-slate-300 border-t-2 border-slate-300">
-                            <tr class="divide-x divide-slate-300">
-                                <td class="sticky-col-num bg-slate-100 px-1 py-2 text-center"></td>
-                                <td class="sticky-col-name bg-slate-100 px-2 py-2 text-right text-slate-700"> Чергових на день: </td>
-                                <td id="daily-totals-anchor" class="hidden"></td>
-                                <td id="grand-total-cell" class="px-0.5 py-2 text-center text-xs font-extrabold text-blue-900 bg-blue-50">0</td>
-                                <td class="no-print bg-slate-100"></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </section>
-
-            <!-- MOBILE DAY VIEW CONTAINER (MODE 2: DAYS) -->
-            <section id="mobile-days-container" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-3 flex-col gap-3">
-                <div class="flex items-center justify-between border-b pb-2">
-                    <h2 class="font-bold text-sm text-slate-800 flex items-center gap-1.5">
-                        <i class="fa-solid fa-calendar-day text-blue-600"></i>
-                        <span>Оберіть день місяця:</span>
-                    </h2>
-                    <span id="mobile-selected-day-badge" class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-extrabold text-xs">
-                        1 Вересня
-                    </span>
-                </div>
-
-                <!-- Date Picker Buttons Strip -->
-                <div class="flex items-center gap-1 overflow-x-auto pb-2 no-scrollbar" id="mobile-day-picker-strip">
-                    <!-- Day Buttons 1..31 -->
-                </div>
-
-                <!-- Intern List for Selected Day -->
-                <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-200 flex flex-col gap-2">
-                    <div class="flex justify-between items-center text-xs font-semibold text-slate-600 px-1">
-                        <span>Чергові інтерни на обрану дату:</span>
-                        <span id="mobile-day-duty-count" class="text-blue-700 font-bold">0 осіб</span>
-                    </div>
-
-                    <div id="mobile-day-interns-list" class="flex flex-col gap-1.5 max-h-[60vh] overflow-y-auto pr-1">
-                        <!-- Dynamic intern status cards -->
-                    </div>
-                </div>
-            </section>
-
-            <!-- MOBILE INTERN VIEW CONTAINER (MODE 3: INTERNS) -->
-            <section id="mobile-interns-container" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-3 flex-col gap-3">
-                <div class="flex flex-col sm:flex-row gap-2 justify-between items-stretch sm:items-center border-b pb-2">
-                    <label class="font-bold text-sm text-slate-800 flex items-center gap-1.5">
-                        <i class="fa-solid fa-user-doctor text-blue-600"></i>
-                        <span>Оберіть інтерна:</span>
-                    </label>
-                    <select id="mobile-intern-select" onchange="renderMobileInternCalendar()" class="bg-slate-100 text-slate-800 font-bold text-xs py-1.5 px-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
-                        <!-- Interns Options -->
-                    </select>
-                </div>
-
-                <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-200 flex flex-col gap-2">
-                    <div class="flex justify-between items-center text-xs px-1">
-                        <span class="font-semibold text-slate-600">Графік змін на місяць:</span>
-                        <span id="mobile-intern-shifts-badge" class="font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full">
-                            Всього змін: 0
-                        </span>
-                    </div>
-
-                    <!-- 31-Day Calendar Grid for selected intern -->
-                    <div id="mobile-intern-calendar-grid" class="grid grid-cols-7 gap-1.5 pt-1">
-                        <!-- Day tiles -->
-                    </div>
-                </div>
-            </section>
-
-            <!-- STATISTICS CARDS -->
-            <section class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 no-print">
-                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-base font-bold shrink-0">
-                        <i class="fa-solid fa-user-doctor"></i>
-                    </div>
-                    <div>
-                        <div class="text-[11px] text-slate-500 font-medium">Всього інтернів</div>
-                        <div class="text-base font-bold text-slate-800" id="stat-interns-count">13</div>
-                    </div>
-                </div>
-
-                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-base font-bold shrink-0">
-                        <i class="fa-solid fa-clipboard-check"></i>
-                    </div>
-                    <div>
-                        <div class="text-[11px] text-slate-500 font-medium">Призначено чергувань</div>
-                        <div class="text-base font-bold text-slate-800" id="stat-total-shifts">0</div>
-                    </div>
-                </div>
-
-                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-base font-bold shrink-0">
-                        <i class="fa-solid fa-chart-line"></i>
-                    </div>
-                    <div>
-                        <div class="text-[11px] text-slate-500 font-medium">Середня кількість змін</div>
-                        <div class="text-base font-bold text-slate-800" id="stat-avg-shifts">0.0</div>
-                    </div>
-                </div>
-            </section>
-
-        </div>
-
-        <!-- TAB 2: DEPARTMENT DUTIES (ЧЕРГОВІ ПО КАФЕДРІ) -->
-        <div id="tab-content-dept" class="hidden flex-col gap-2.5 sm:gap-4">
-
-            <!-- Tool Picker Bar -->
-            <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-2 sm:p-3.5 no-print flex flex-col md:flex-row justify-between items-stretch md:items-center gap-2">
-                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 w-full no-scrollbar">
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-indigo-600 shrink-0 flex items-center gap-1">
-                        <i class="fa-solid fa-hospital-user"></i> Інструмент:
-                    </span>
-                    <div class="flex items-center gap-1 shrink-0" id="dept-tool-picker">
-                        <button data-tool="" class="dept-tool-btn active px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border transition shrink-0">
-                            <span class="w-2.5 h-2.5 rounded-full border border-slate-400 bg-white inline-block"></span>
-                            <span>Очистити</span>
-                        </button>
-                        <button data-tool="+" class="dept-tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition shrink-0">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                            <span>[ + ] Може</span>
-                        </button>
-                        <button data-tool="К" class="dept-tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-indigo-400 bg-indigo-600 text-white hover:bg-indigo-700 transition shrink-0">
-                            <span class="w-2 h-2 rounded-full bg-white inline-block"></span>
-                            <span>[ К ] Черговий кафедри</span>
-                        </button>
-                        <button data-tool="Н" class="dept-tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-purple-400 bg-purple-600 text-white hover:bg-purple-700 transition shrink-0">
-                            <span class="w-2 h-2 rounded-full bg-white inline-block"></span>
-                            <span>[ Н ] Нічна зміна</span>
-                        </button>
-                        <button data-tool="В" class="dept-tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-amber-300 bg-amber-100 text-amber-900 hover:bg-amber-200 transition shrink-0">
-                            <span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
-                            <span>[ В ] Вихідний</span>
-                        </button>
-                        <button data-tool="Х" class="dept-tool-btn px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border border-rose-300 bg-rose-100 text-rose-900 hover:bg-rose-200 transition shrink-0">
-                            <span class="w-2 h-2 rounded-full bg-rose-600 inline-block"></span>
-                            <span>[ Х ] Хворий</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-between sm:justify-end gap-1.5 border-t md:border-t-0 pt-1.5 md:pt-0 border-slate-100 text-xs shrink-0">
-                    <button onclick="toggleCompactNames()" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition flex items-center gap-1 text-[11px]">
-                        <i class="fa-solid fa-compress text-indigo-600"></i>
-                        <span>Скоротити ПІБ</span>
-                    </button>
-                    
-                    <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                        <button onclick="scrollDeptMatrix(-200)" class="px-2 py-0.5 bg-white rounded border border-slate-300 text-slate-700 font-bold active:bg-slate-200">
-                            ◄ 7д
-                        </button>
-                        <button onclick="scrollDeptMatrix(0)" class="px-1.5 py-0.5 bg-white rounded border border-slate-300 text-slate-700 text-[10px] active:bg-slate-200">
-                            Сьогодні
-                        </button>
-                        <button onclick="scrollDeptMatrix(200)" class="px-2 py-0.5 bg-white rounded border border-slate-300 text-slate-700 font-bold active:bg-slate-200">
-                            7д ►
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- DEPARTMENT MATRIX TABLE CONTAINER -->
-            <section id="dept-table-container-wrapper" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col print-table-container">
-                <div class="overflow-x-auto relative" id="dept-matrix-scroll-container">
-                    <table class="w-full table-fixed border-collapse text-xs text-center" id="dept-schedule-table">
-                        <thead>
-                            <!-- Row 1: Dates -->
-                            <tr class="bg-navy-800 text-white font-semibold divide-x divide-slate-700 sticky-header">
-                                <th class="sticky-corner bg-navy-800 px-1 py-2 text-center border-b border-slate-700 sticky-col-num">№</th>
-                                <th class="sticky-header bg-navy-800 px-2 py-2 text-left border-b border-slate-700 sticky-col-name"> ПІБ відповідального інтерна </th>
-                                <th class="sticky-header bg-navy-800 px-2 py-2 text-left border-b border-slate-700 sticky-col-phone"> Телефон </th>
-                                <th id="dept-day-headers-anchor" class="hidden"></th>
-                                <th class="px-1 py-2 w-12 bg-navy-800 text-center border-b border-slate-700 font-bold text-indigo-200 text-[11px]"> Всього<br>змін </th>
-                                <th class="px-2 py-2 w-20 text-left bg-navy-800 border-b border-slate-700 no-print"> Дії </th>
-                            </tr>
-                            <!-- Row 2: Weekdays -->
-                            <tr class="bg-slate-700 text-slate-200 divide-x divide-slate-600 font-medium text-[11px] sticky-header" style="top:33px;">
-                                <th class="sticky-corner bg-slate-700 border-b border-slate-600 sticky-col-num"></th>
-                                <th class="sticky-col-name bg-slate-700 border-b border-slate-600 text-left px-1.5 py-1 text-slate-300 font-normal italic flex justify-between items-center gap-1">
-                                    <span>Чергові по кафедрі</span>
-                                    <button onclick="openAddInternModal()" class="text-[10px] bg-indigo-500/40 hover:bg-indigo-500/60 text-white px-1 py-0.5 rounded font-medium border border-indigo-400/30 transition flex items-center gap-0.5 no-print">
-                                        <i class="fa-solid fa-user-plus text-[9px]"></i> +Інтерн
-                                    </button>
-                                </th>
-                                <th class="sticky-col-phone bg-slate-700 border-b border-slate-600 text-left px-1 py-1 text-slate-300 font-normal italic">
-                                    <span>Контакт</span>
-                                </th>
-                                <th id="dept-weekday-headers-anchor" class="hidden"></th>
-                                <th class="bg-slate-700 border-b border-slate-600 text-center text-slate-300">[К]</th>
-                                <th class="bg-slate-700 border-b border-slate-600 no-print"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="dept-schedule-tbody" class="divide-y divide-slate-200 bg-white">
-                            <!-- Dynamic rows -->
-                        </tbody>
-                        <tfoot class="bg-slate-100 font-bold divide-y divide-slate-300 border-t-2 border-slate-300">
-                            <tr class="divide-x divide-slate-300">
-                                <td class="sticky-col-num bg-slate-100 px-1 py-2 text-center"></td>
-                                <td class="sticky-col-name bg-slate-100 px-2 py-2 text-right text-slate-700" colspan="2"> Чергових по кафедрі на день: </td>
-                                <td id="dept-daily-totals-anchor" class="hidden"></td>
-                                <td id="dept-grand-total-cell" class="px-0.5 py-2 text-center text-xs font-extrabold text-indigo-900 bg-indigo-50">0</td>
-                                <td class="no-print bg-slate-100"></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </section>
-
-        </div>
-
-    </main>
-
-    <!-- MOBILE BOTTOM FLOATING TOOL DOCK -->
-    <div class="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-300 p-1.5 shadow-lg flex items-center justify-around sm:hidden no-print">
-        <span class="text-[10px] font-bold text-slate-500 uppercase">Пензель:</span>
-        <button onclick="setMobileActiveTool('')" id="mb-tool-clear" class="px-2 py-1 rounded text-xs font-bold border bg-white border-slate-300">
-            Очистити
-        </button>
-        <button onclick="setMobileActiveTool('+')" id="mb-tool-plus" class="px-2 py-1 rounded text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-            +
-        </button>
-        <button onclick="setMobileActiveTool('Ч')" id="mb-tool-ch" class="px-2 py-1 rounded text-xs font-bold bg-blue-600 text-white shadow">
-            Ч
-        </button>
-        <button onclick="setMobileActiveTool('К')" id="mb-tool-k" class="px-2 py-1 rounded text-xs font-bold bg-indigo-600 text-white shadow">
-            К
-        </button>
-        <button onclick="setMobileActiveTool('Н')" id="mb-tool-n" class="px-2 py-1 rounded text-xs font-bold bg-purple-600 text-white shadow">
-            Н
-        </button>
-        <button onclick="setMobileActiveTool('В')" id="mb-tool-v" class="px-2 py-1 rounded text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
-            В
-        </button>
-        <button onclick="setMobileActiveTool('Х')" id="mb-tool-x" class="px-2 py-1 rounded text-xs font-bold bg-rose-100 text-rose-900 border border-rose-300">
-            Х
-        </button>
-    </div>
-
-    <!-- MODALS & DIALOGS -->
-
-    <!-- Export / Print Modal -->
-    <div id="export-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-3">
-        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-200">
-            <div class="bg-navy-800 text-white px-4 py-3 flex justify-between items-center">
-                <h3 class="font-bold text-base flex items-center gap-2">
-                    <i class="fa-solid fa-file-export text-blue-400"></i>
-                    Експорт та Друк
-                </h3>
-                <button onclick="closeExportModal()" class="text-slate-300 hover:text-white text-lg">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <div class="p-4 flex flex-col gap-3">
-                <p class="text-xs text-slate-600">
-                    Оберіть потрібний документ та формат для обраного місяця:
-                </p>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <button onclick="exportToPDF()" class="p-3 rounded-xl border border-slate-200 hover:border-rose-500 hover:bg-rose-50/50 transition flex flex-col items-center text-center gap-1 group">
-                        <i class="fa-solid fa-file-pdf text-xl text-rose-600 group-hover:scale-110 transition"></i>
-                        <span class="font-semibold text-xs text-slate-800">PDF: Основний графік</span>
-                        <span class="text-[10px] text-slate-500">1 сторінка A4 (Альбомна)</span>
-                    </button>
-
-                    <button onclick="exportDeptToPDF()" class="p-3 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition flex flex-col items-center text-center gap-1 group">
-                        <i class="fa-solid fa-hospital-user text-xl text-indigo-600 group-hover:scale-110 transition"></i>
-                        <span class="font-semibold text-xs text-slate-800">PDF: Чергові по кафедрі</span>
-                        <span class="text-[10px] text-slate-500">1 сторінка A4 (Альбомна)</span>
-                    </button>
-
-                    <button onclick="window.print()" class="p-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition flex flex-col items-center text-center gap-1 group">
-                        <i class="fa-solid fa-print text-xl text-blue-600 group-hover:scale-110 transition"></i>
-                        <span class="font-semibold text-xs text-slate-800">Друк браузера</span>
-                        <span class="text-[10px] text-slate-500">Прямий вивід на принтер</span>
-                    </button>
-
-                    <button onclick="exportToCSV()" class="p-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 transition flex flex-col items-center text-center gap-1 group">
-                        <i class="fa-solid fa-file-csv text-xl text-emerald-600 group-hover:scale-110 transition"></i>
-                        <span class="font-semibold text-xs text-slate-800">Експорт в Excel / CSV</span>
-                        <span class="text-[10px] text-slate-500">Для редагування в Excel</span>
-                    </button>
-                </div>
-            </div>
-            <div class="bg-slate-100 px-4 py-2.5 border-t border-slate-200 flex justify-end">
-                <button onclick="closeExportModal()" class="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium text-xs rounded-lg transition">
-                    Закрити
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Confirm Reset Modal -->
-    <div id="reset-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-3">
-        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
-            <div class="p-4 flex items-start gap-3">
-                <div class="w-9 h-9 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 font-bold text-base">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </div>
-                <div>
-                    <h3 class="font-bold text-sm text-slate-900">Скинути всі записи?</h3>
-                    <p class="text-xs text-slate-600 mt-1">
-                        Дія очистить усі відмітки про чергування у поточному місяці. Ви впевнені?
-                    </p>
-                </div>
-            </div>
-            <div class="bg-slate-100 px-4 py-2.5 border-t border-slate-200 flex justify-end gap-2">
-                <button onclick="closeResetModal()" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium text-xs rounded-lg transition">
-                    Скасувати
-                </button>
-                <button onclick="confirmResetAll()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs rounded-lg transition shadow-sm">
-                    Так, скинути
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Intern Modal -->
-    <div id="add-intern-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-3">
-        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
-            <div class="bg-navy-800 text-white px-4 py-3 flex justify-between items-center">
-                <h3 class="font-bold text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-user-plus text-blue-400"></i> Додати інтерна
-                </h3>
-                <button onclick="closeAddInternModal()" class="text-slate-300 hover:text-white">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <div class="p-4 space-y-3">
-                <label class="block text-xs font-semibold text-slate-700">ПІБ нового інтерна (Прізвище у CAPS, Ім'я По батькові):</label>
-                <input type="text" id="new-intern-name-input" placeholder="Наприклад: ШЕВЧЕНКО Ольга Іванівна" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <label class="block text-xs font-semibold text-slate-700">Номер телефону:</label>
-                <input type="text" id="new-intern-phone-input" placeholder="0XXXXXXXXX" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div class="bg-slate-100 px-4 py-2.5 border-t border-slate-200 flex justify-end gap-2">
-                <button onclick="closeAddInternModal()" class="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 font-medium text-xs rounded-lg">Скасувати</button>
-                <button onclick="submitAddIntern()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-lg shadow-sm">Додати</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Delete Intern Confirm Modal -->
-    <div id="delete-intern-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-3">
-        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
-            <div class="p-4 flex items-start gap-3">
-                <div class="w-9 h-9 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 font-bold text-base">
-                    <i class="fa-solid fa-trash-can"></i>
-                </div>
-                <div>
-                    <h3 class="font-bold text-sm text-slate-900">Видалити інтерна?</h3>
-                    <p class="text-xs text-slate-600 mt-1" id="delete-intern-name-text"></p>
-                </div>
-            </div>
-            <div class="bg-slate-100 px-4 py-2.5 border-t border-slate-200 flex justify-end gap-2">
-                <button onclick="closeDeleteInternModal()" class="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 font-medium text-xs rounded-lg">Скасувати</button>
-                <button onclick="confirmDeleteIntern()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs rounded-lg shadow-sm">Видалити</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Global Toast Container -->
-    <div id="toast-container" class="fixed bottom-14 sm:bottom-4 right-3 z-50 flex flex-col gap-2 pointer-events-none"></div>
-
-    <!-- JAVASCRIPT LOGIC -->
-    <script>
-        // Formatter: Surname in UPPERCASE, First Name & Patronymic in Title Case
-        function formatInternName(rawName) {
-            if (!rawName) return '';
-            const parts = rawName.trim().split(/\s+/);
-            if (parts.length === 0) return '';
-            
-            const surname = parts[0].toUpperCase();
-            const rest = parts.slice(1).map(part => {
-                if (!part) return '';
-                return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-            });
-            
-            return [surname, ...rest].join(' ');
-        }
-
-        // Shorten Surname for Mobile Compact Mode (e.g., "ШЕВЧЕНКО Ольга Іванівна" -> "ШЕВЧЕНКО О.І.")
-        function getShortName(fullName) {
-            if (!fullName) return '';
-            const parts = fullName.trim().split(/\s+/);
-            if (parts.length <= 1) return fullName;
-            
-            const surname = parts[0];
-            const initials = parts.slice(1).map(p => p.charAt(0).toUpperCase() + '.').join('');
-            return `${surname} ${initials}`;
-        }
-
-        // Alphabetically sorted Interns List with formatted surnames
-        const DEFAULT_INTERNS_LIST = [
-            "БІЛАК Алла Іванівна",
-            "БРОВЕНДЕР Дарина Юріївна",
-            "ГАНЖА Аліна Вікторівна",
-            "ГРАБОВАН Дарія Романівна",
-            "КУПРЕЙЧУК Карина Віталіївна",
-            "ЛІСОВА Вікторія Валентинівна",
-            "МІНДИЛА Ніколь Олексіївна",
-            "ОСІПЧУК Вікторія Валентинівна",
-            "ОСТАШЕВСЬКА Вікторія Сергіївна",
-            "СКВОРЧИНСЬКА Анна Михайлівна",
-            "ТИНЯКОВА Марта Володимирівна",
-            "ЦИМБАЛЕНКО Дарія Олександрівна",
-            "ЯКИМЕНКО Анна Юріївна"
-        ];
-
-        // Default Phone Numbers for Interns
-        const DEFAULT_INTERN_PHONES = {
-            "БРОВЕНДЕР Дарина Юріївна": "0665891954",
-            "ГАНЖА Аліна Вікторівна": "0663432305",
-            "ГРАБОВАН Дарія Романівна": "0953363695",
-            "ЦИМБАЛЕНКО Дарія Олександрівна": "0957103039"
-        };
-
-        const MONTH_NAMES_UA = [
-            "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
-            "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
-        ];
-
-        const UA_WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"];
-
-        // Application State
-        let currentYear = 2026;
-        let currentMonth = 9; // September
-        let activeTab = 'matrix'; // 'matrix' or 'dept'
-        let mobileViewMode = 'table'; // 'table', 'days', 'interns'
-        let selectedMobileDay = 1;
-        let isCompactNames = false;
         
-        let internsList = [...DEFAULT_INTERNS_LIST];
-        let internPhones = { ...DEFAULT_INTERN_PHONES };
-        let matrixData = {};     // Main matrix schedule
-        let deptMatrixData = {}; // Department duties matrix schedule
-        let activeTool = ""; 
-        let activeDeptTool = "";
-        let isMouseDown = false;
-        let isDeptMouseDown = false;
-        let pendingDeleteInternIdx = null;
+        <!-- Top Action Buttons: PDF, Excel, Viber/TG -->
+        <div class="flex items-center space-x-1 sm:space-x-1.5">
+          <button id="btnExportPdf" class="touch-press px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white text-xs font-semibold flex items-center gap-1 shadow-sm">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+            <span>PDF</span>
+          </button>
 
-        // Toggle Compact Names for Mobile Vertical Screens
-        function toggleCompactNames() {
-            isCompactNames = !isCompactNames;
-            const container = document.getElementById('matrix-table-container-wrapper');
-            const btnText = document.getElementById('compact-toggle-text');
+          <button id="btnExportExcel" class="touch-press px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1 shadow-sm">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <span>Excel</span>
+          </button>
 
-            if (isCompactNames) {
-                container?.classList.add('compact-mode');
-                if (btnText) btnText.textContent = 'Повні ПІБ';
-                showToast('Увімкнено скорочений режим ПІБ', 'info');
-            } else {
-                container?.classList.remove('compact-mode');
-                if (btnText) btnText.textContent = 'Скоротити ПІБ';
-            }
-            updateDynamicLayout();
-            renderTableBody();
-            renderDeptTableBody();
+          <button id="btnShare" class="touch-press px-2.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 active:bg-white/30 text-white text-xs font-medium flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+            <span class="hidden sm:inline">Поділитись</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Month & Year Switcher Controls -->
+      <div class="bg-indigo-800/80 rounded-xl p-1.5 flex items-center justify-between gap-1 shadow-inner text-xs">
+        <button id="btnPrevMonth" class="touch-press w-8 h-8 rounded-lg bg-indigo-700/80 hover:bg-indigo-600 flex items-center justify-center font-bold text-white shadow-sm" title="Попередній місяць">
+          ◀
+        </button>
+
+        <div class="flex items-center gap-1.5 flex-1 justify-center">
+          <select id="monthSelect" class="bg-indigo-900/90 text-white font-semibold text-xs rounded-lg px-2.5 py-1.5 border border-indigo-500/40 focus:outline-none focus:ring-1 focus:ring-indigo-300">
+            <option value="0">Січень</option>
+            <option value="1">Лютий</option>
+            <option value="2">Березень</option>
+            <option value="3">Квітень</option>
+            <option value="4">Травень</option>
+            <option value="5">Червень</option>
+            <option value="6">Липень</option>
+            <option value="7">Серпень</option>
+            <option value="8">Вересень</option>
+            <option value="9">Жовтень</option>
+            <option value="10">Листопад</option>
+            <option value="11">Грудень</option>
+          </select>
+
+          <select id="yearSelect" class="bg-indigo-900/90 text-white font-semibold text-xs rounded-lg px-2.5 py-1.5 border border-indigo-500/40 focus:outline-none focus:ring-1 focus:ring-indigo-300">
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
+            <option value="2028">2028</option>
+            <option value="2029">2029</option>
+            <option value="2030">2030</option>
+          </select>
+
+          <span id="currentPeriodBadge" class="hidden md:inline-block text-[11px] bg-indigo-500/40 px-2 py-1 rounded-md text-indigo-100 font-medium">
+            31 день
+          </span>
+        </div>
+
+        <button id="btnNextMonth" class="touch-press w-8 h-8 rounded-lg bg-indigo-700/80 hover:bg-indigo-600 flex items-center justify-center font-bold text-white shadow-sm" title="Наступний місяць">
+          ▶
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Mode Navigation (Tabs) -->
+    <div class="bg-indigo-900/95 px-3 py-1.5 flex items-center justify-between text-xs overflow-x-auto no-scrollbar gap-2 border-t border-indigo-600/30">
+      <div class="flex items-center space-x-1.5 w-full justify-around sm:justify-start">
+        <button data-view="cards" class="view-btn px-3 py-1.5 rounded-lg font-medium transition-all bg-white text-indigo-900 shadow-sm flex items-center gap-1.5">
+          <span>📱</span> Картки
+        </button>
+        <button data-view="calendar" class="view-btn px-3 py-1.5 rounded-lg font-medium transition-all text-indigo-200 hover:text-white flex items-center gap-1.5">
+          <span>🗓️</span> По днях
+        </button>
+        <button data-view="table" class="view-btn px-3 py-1.5 rounded-lg font-medium transition-all text-indigo-200 hover:text-white flex items-center gap-1.5">
+          <span>📊</span> Таблиця
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-3 sm:px-4 pt-3.5 space-y-3.5">
+    
+    <!-- Fast Search and Batch Options -->
+    <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200/80 flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
+      <div class="relative flex-1">
+        <input type="text" id="searchInput" placeholder="Пошук працівника або чергового..." 
+          class="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
+        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        <button id="clearSearch" class="hidden absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-sm">✕</button>
+      </div>
+
+      <!-- Quick status legend / Filter -->
+      <div class="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar py-0.5">
+        <span class="text-slate-500 text-[11px] whitespace-nowrap mr-1">Швидко:</span>
+        <button id="btnStatsModal" class="touch-press px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-medium whitespace-nowrap flex items-center gap-1">
+          📊 Підсумки
+        </button>
+        <button id="btnResetDefaults" class="touch-press px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg font-medium whitespace-nowrap flex items-center gap-1">
+          ↺ Скинути
+        </button>
+      </div>
+    </div>
+
+    <!-- VIEW 1: Mobile Cards List (Best for one-handed smartphone editing) -->
+    <section id="viewCards" class="space-y-3">
+      <!-- Injected dynamically via JS -->
+    </section>
+
+    <!-- VIEW 2: Day Roster View (Select any day 1..31 of Oct 2026) -->
+    <section id="viewCalendar" class="hidden space-y-3">
+      <!-- Day Selector Carousel -->
+      <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200/80">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Оберіть число місяця:</span>
+          <span id="selectedDayLabel" class="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">1 число</span>
+        </div>
+        <div id="daySlider" class="flex gap-2 overflow-x-auto pb-1 no-scrollbar pt-1">
+          <!-- Day bubbles inserted via JS -->
+        </div>
+      </div>
+
+      <!-- Workers for selected day -->
+      <div id="dayWorkersList" class="space-y-2">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+    <!-- VIEW 3: Full Spreadsheet Grid (With horizontal swipe & sticky worker column) -->
+    <section id="viewTable" class="hidden">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+        <div class="p-3 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between text-xs">
+          <div class="font-medium text-slate-600 flex items-center gap-1.5">
+            <span class="inline-block w-2 h-2 rounded-full bg-indigo-500"></span>
+            Прокручуйте таблицю вправо/вліво. Торкніться клітинки для зміни.
+          </div>
+        </div>
+
+        <div class="overflow-x-auto max-h-[70vh] relative no-scrollbar">
+          <table class="w-full text-center border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700 font-semibold sticky-header border-b border-slate-200">
+                <th class="sticky-corner bg-slate-100 px-3 py-2.5 text-left border-r border-slate-200 min-w-[130px] sm:min-w-[160px]">
+                  Працівник
+                </th>
+                <th class="px-2 py-2 border-r border-slate-200 min-w-[110px] bg-slate-100 text-left">
+                  Черговий
+                </th>
+                <!-- Days 1 to 31 Header (Generated in JS) -->
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- Rows injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Legend & Customer Notes -->
+    <footer class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 text-xs space-y-2">
+      <div class="flex items-center gap-2 font-bold text-slate-800 text-sm border-b border-slate-100 pb-2">
+        <span class="w-5 h-5 rounded-md bg-amber-100 text-amber-800 flex items-center justify-center text-xs font-bold">В</span>
+        <span>Розшифровка та примітки:</span>
+      </div>
+      
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600">
+        <div class="flex items-center gap-2 p-2 bg-slate-50 rounded-xl">
+          <span class="px-2.5 py-1 bg-amber-100 border border-amber-300 text-amber-800 font-bold rounded-lg text-xs">В</span>
+          <span><strong>В</strong> — вихідний день</span>
+        </div>
+        <div class="flex items-center gap-2 p-2 bg-slate-50 rounded-xl">
+          <span class="px-2.5 py-1 bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold rounded-lg text-xs">Ч</span>
+          <span><strong>Ч</strong> — чергування (або робочий день)</span>
+        </div>
+      </div>
+
+      <div class="text-[11px] text-slate-500 pt-1 space-y-1">
+        <p id="periodSummaryNote" class="flex items-center gap-1.5 text-indigo-700 font-medium">
+          <span>✓</span> Враховано особливості: вівторки та четверги (Купрейчук, Тинякова, Лісова), а також 18.10 та 19.10 (Осташевська).
+        </p>
+        <p class="text-slate-400">
+          * Усі зміни автоматично зберігаються на цьому телефоні для кожного місяця та року окремо.
+        </p>
+      </div>
+    </footer>
+
+  </main>
+
+  <!-- Dedicated Container for Crisp A4 Landscape PDF Generation (Offscreen) -->
+  <div id="pdfRenderWrapper" class="fixed -left-[9999px] top-0 bg-white text-slate-900 font-sans p-6 w-[1120px]">
+    <div id="pdfPrintContent" class="space-y-4">
+      <!-- Header -->
+      <div class="border-b-2 border-slate-800 pb-3 flex justify-between items-end">
+        <div>
+          <h2 class="text-xl font-bold tracking-tight text-slate-900 uppercase">Графік чергування працівників</h2>
+          <p id="pdfPeriodTitle" class="text-sm font-semibold text-indigo-800 mt-0.5">Жовтень 2026 року</p>
+        </div>
+        <div class="text-right text-[11px] text-slate-500 leading-tight">
+          <p>Сформовано автоматично</p>
+          <p id="pdfGeneratedDate"></p>
+        </div>
+      </div>
+
+      <!-- PDF Table Container -->
+      <div id="pdfTableTarget" class="overflow-hidden border border-slate-300 rounded-lg">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Legend and Signatures -->
+      <div class="pt-3 border-t border-slate-200 flex justify-between items-start text-xs text-slate-600">
+        <div class="space-y-1">
+          <p class="font-bold text-slate-800">Умовні позначення:</p>
+          <p><span class="font-semibold text-amber-700">В</span> — вихідний день</p>
+          <p><span class="font-semibold text-emerald-700">Ч</span> — чергування (або робочий день)</p>
+        </div>
+        <div class="flex gap-12 text-xs">
+          <div class="space-y-6">
+            <p>Керівник підрозділу: _________________</p>
+            <p>Відповідальний за графік: _________________</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Day / Worker Bottom Sheet Modal -->
+  <div id="editModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+    <div id="modalContainer" class="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl p-5 shadow-2xl transform translate-y-full sm:translate-y-0 transition-transform duration-200 max-h-[90vh] overflow-y-auto">
+      
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between border-b border-slate-100 pb-3 mb-3">
+        <div>
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-indigo-600">Редагування чергування</div>
+          <h3 id="modalWorkerName" class="font-bold text-slate-800 text-lg leading-tight">Працівник</h3>
+          <p id="modalDaySubtext" class="text-xs text-slate-500 font-medium mt-0.5">1 число</p>
+        </div>
+        <button id="modalCloseBtn" class="touch-press w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold">
+          ✕
+        </button>
+      </div>
+
+      <!-- Quick Status Badges -->
+      <div class="space-y-2 mb-4">
+        <label class="block text-xs font-semibold text-slate-600">Швидкий вибір статусу:</label>
+        <div class="grid grid-cols-3 gap-2">
+          <button data-quick="В" class="touch-press py-2.5 px-3 rounded-xl bg-amber-100 hover:bg-amber-200 active:bg-amber-300 text-amber-900 border border-amber-300 font-bold text-xs flex flex-col items-center justify-center gap-0.5 shadow-sm">
+            <span class="text-base">В</span>
+            <span class="text-[10px] font-medium opacity-80">Вихідний</span>
+          </button>
+          <button data-quick="Ч" class="touch-press py-2.5 px-3 rounded-xl bg-emerald-100 hover:bg-emerald-200 active:bg-emerald-300 text-emerald-900 border border-emerald-300 font-bold text-xs flex flex-col items-center justify-center gap-0.5 shadow-sm">
+            <span class="text-base">Ч</span>
+            <span class="text-[10px] font-medium opacity-80">Чергування</span>
+          </button>
+          <button data-quick="" class="touch-press py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 border border-slate-200 font-medium text-xs flex flex-col items-center justify-center gap-0.5">
+            <span class="text-base">✕</span>
+            <span class="text-[10px] opacity-75">Очистити день</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Custom text entry -->
+      <div class="space-y-1.5 mb-4">
+        <label class="block text-xs font-semibold text-slate-600">Або введіть довільне позначення:</label>
+        <div class="flex gap-2">
+          <input type="text" id="customInput" placeholder="напр. 8, В, Відпустка..." 
+            class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+          <button id="applyCustomBtn" class="touch-press px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm">
+            ОК
+          </button>
+        </div>
+      </div>
+
+      <!-- Edit Duty Person -->
+      <div class="space-y-1.5 pt-3 border-t border-slate-100 mb-4">
+        <label class="block text-xs font-semibold text-slate-600">Черговий / Заміна для цього працівника:</label>
+        <div class="flex gap-2">
+          <input type="text" id="modalDutyInput" placeholder="ПІБ чергового..."
+            class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+          <button id="saveDutyBtn" class="touch-press px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-medium">
+            Оновити
+          </button>
+        </div>
+      </div>
+
+      <!-- Batch Actions for this worker -->
+      <div class="space-y-2 pt-3 border-t border-slate-100">
+        <label class="block text-xs font-semibold text-slate-600">Швидкі дії для співробітника:</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btnSetTueThu" class="touch-press p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 rounded-xl text-[11px] font-semibold text-center flex items-center justify-center gap-1">
+            <span>📅</span> Поставити «В» у Вт і Чт
+          </button>
+          <button id="btnClearAllWorker" class="touch-press p-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 rounded-xl text-[11px] font-semibold text-center flex items-center justify-center gap-1">
+            <span>🗑️</span> Очистити весь місяць
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Stats / Summary Modal -->
+  <div id="statsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="w-full max-w-lg bg-white rounded-2xl p-4 sm:p-5 shadow-2xl max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-2">
+        <h3 class="font-bold text-slate-800 text-base">Підсумок вихідних і чергувань</h3>
+        <button id="closeStatsModal" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-bold">✕</button>
+      </div>
+
+      <div class="overflow-y-auto flex-1 space-y-2 pr-1" id="statsList">
+        <!-- Injected via JS -->
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 text-right">
+        <button id="statsCloseBottom" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold">Закрити</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Bar -->
+  <div id="toast" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-slate-900/90 text-white text-xs px-4 py-2.5 rounded-full shadow-lg opacity-0 pointer-events-none transition-all duration-300 z-50 flex items-center gap-2">
+    <span id="toastIcon">✓</span>
+    <span id="toastMsg">Збережено</span>
+  </div>
+
+  <script>
+    const MONTH_NAMES_UA = [
+      'Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень',
+      'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень'
+    ];
+    const DAYS_OF_WEEK = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
+    // Master base worker roster (fixed replacement / duty assignments requested by user)
+    const BASE_WORKERS = [
+      { id: "yakymenko", name: "Якименко", duty: "Нагребецька Г.М." },
+      { id: "skvorchynska", name: "Скворчинська", duty: "Гак І.О." },
+      { id: "tsymbalenko", name: "Цимбаленко", duty: "Ткачук Р.Р." },
+      { id: "bilak", name: "Білак", duty: "Ткачук Р.Р., Балан А.В." },
+      { id: "grabovan", name: "Грабован", duty: "Деркач А.Д." },
+      { id: "kupreychuk", name: "Купрейчук", duty: "Богу І.В." },
+      { id: "osipchuk", name: "Осіпчук", duty: "Михайлюк Є.В." },
+      { id: "ostashevska", name: "Осташевська", duty: "Мись Д.І." },
+      { id: "tynyakova", name: "Тинякова", duty: "Овсяннікова Т.І." },
+      { id: "gonchar", name: "Гончар", duty: "Бондарук В.П." },
+      { id: "ganzha", name: "Ганжа", duty: "Бондарук В.П., Павловський Д.Ю." },
+      { id: "lisova", name: "Лісова", duty: "Бондарук В.П." }
+    ];
+
+    // State Variables
+    let currentYear = 2026;
+    let currentMonth = 9; // 0-based: 9 = October
+    let currentActiveView = 'cards';
+    let currentSelectedDay = 1;
+    let editingContext = { workerId: null, day: null };
+
+    // Multi-month storage key
+    const STORAGE_KEY_V3 = 'CHERGUVANNYA_DATA_V3_MONTHLY';
+
+    // In-memory monthly store: { "2026-9": [ { id, name, duty, days: { 1: "В", ... } }, ... ] }
+    let allMonthsStore = {};
+    let scheduleData = []; // Active month's workers
+
+    function getStoragePeriodKey(year, month) {
+      return `${year}-${month}`;
+    }
+
+    function getDaysInMonth(year, month) {
+      return new Date(year, month + 1, 0).getDate();
+    }
+
+    function getDayOfWeek(year, month, day) {
+      const date = new Date(year, month, day);
+      return DAYS_OF_WEEK[date.getDay()];
+    }
+
+    function isWeekend(year, month, day) {
+      const d = new Date(year, month, day).getDay();
+      return d === 0 || d === 6;
+    }
+
+    function getTueThuDays(year, month) {
+      const list = [];
+      const totalDays = getDaysInMonth(year, month);
+      for (let d = 1; d <= totalDays; d++) {
+        const dow = new Date(year, month, d).getDay();
+        if (dow === 2 || dow === 4) { // 2 = Tuesday, 4 = Thursday
+          list.push(d);
+        }
+      }
+      return list;
+    }
+
+    function createDefaultMonthData(year, month) {
+      const tueThu = getTueThuDays(year, month);
+
+      return BASE_WORKERS.map(worker => {
+        const days = {};
+
+        // If it's October 2026, preset exact customer specifications
+        if (year === 2026 && month === 9) {
+          if (["kupreychuk", "tynyakova", "lisova"].includes(worker.id)) {
+            tueThu.forEach(d => { days[d] = "В"; });
+          }
+          if (worker.id === "ostashevska") {
+            days[18] = "В";
+            days[19] = "В";
+          }
         }
 
-        // Horizontal Scroll helper for Matrix Table on mobile
-        function scrollMatrix(offset) {
-            const container = activeTab === 'matrix' 
-                ? document.getElementById('matrix-scroll-container')
-                : document.getElementById('dept-matrix-scroll-container');
-            if (!container) return;
-
-            if (offset === 0) {
-                container.scrollTo({ left: 0, behavior: 'smooth' });
-            } else {
-                container.scrollBy({ left: offset, behavior: 'smooth' });
-            }
-        }
-
-        // Mobile Display View Mode Switcher ('table' | 'days' | 'interns')
-        function setMobileViewMode(mode) {
-            mobileViewMode = mode;
-            
-            document.querySelectorAll('.view-mode-btn').forEach(btn => btn.classList.remove('active-mode'));
-            document.getElementById(`view-mode-${mode}`)?.classList.add('active-mode');
-
-            const tableWrap = document.getElementById('matrix-table-container-wrapper');
-            const deptTableWrap = document.getElementById('dept-table-container-wrapper');
-            const daysWrap = document.getElementById('mobile-days-container');
-            const internsWrap = document.getElementById('mobile-interns-container');
-
-            if (mode === 'table') {
-                if (activeTab === 'matrix') tableWrap?.classList.remove('hidden');
-                else deptTableWrap?.classList.remove('hidden');
-                daysWrap?.classList.add('hidden');
-                internsWrap?.classList.add('hidden');
-            } else if (mode === 'days') {
-                tableWrap?.classList.add('hidden');
-                deptTableWrap?.classList.add('hidden');
-                daysWrap?.classList.remove('hidden');
-                internsWrap?.classList.add('hidden');
-                renderMobileDayPicker();
-            } else if (mode === 'interns') {
-                tableWrap?.classList.add('hidden');
-                deptTableWrap?.classList.add('hidden');
-                daysWrap?.classList.add('hidden');
-                internsWrap?.classList.remove('hidden');
-                renderMobileInternSelect();
-            }
-        }
-
-        // Render Day Buttons Strip for Mobile Day View
-        function renderMobileDayPicker() {
-            const strip = document.getElementById('mobile-day-picker-strip');
-            if (!strip) return;
-
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            if (selectedMobileDay > daysCount) selectedMobileDay = 1;
-
-            let html = '';
-            for (let day = 1; day <= daysCount; day++) {
-                const isWknd = isWeekendDay(day);
-                const wdName = UA_WEEKDAYS[getDayOfWeekIndex(day)];
-                const isActive = (day === selectedMobileDay);
-
-                const activeClass = isActive 
-                    ? 'bg-blue-600 text-white font-extrabold shadow ring-2 ring-blue-400' 
-                    : isWknd ? 'bg-rose-100 text-rose-800' : 'bg-white text-slate-700 border border-slate-200';
-
-                html += `
-                    <button onclick="selectMobileDay(${day})" class="px-3 py-1.5 rounded-lg text-xs flex flex-col items-center shrink-0 transition ${activeClass}">
-                        <span class="text-[9px] opacity-80 uppercase">${wdName}</span>
-                        <span class="font-bold text-sm">${day}</span>
-                    </button>
-                `;
-            }
-            strip.innerHTML = html;
-            renderMobileDayInternsList();
-        }
-
-        function selectMobileDay(day) {
-            selectedMobileDay = day;
-            renderMobileDayPicker();
-        }
-
-        function renderMobileDayInternsList() {
-            const badge = document.getElementById('mobile-selected-day-badge');
-            const monthName = MONTH_NAMES_UA[currentMonth - 1];
-            const wdName = UA_WEEKDAYS[getDayOfWeekIndex(selectedMobileDay)];
-            if (badge) badge.textContent = `${selectedMobileDay} ${monthName} (${wdName})`;
-
-            const container = document.getElementById('mobile-day-interns-list');
-            if (!container) return;
-
-            const monthKey = getMonthKey();
-            const isDept = (activeTab === 'dept');
-            const targetData = isDept ? deptMatrixData : matrixData;
-            
-            let dutyCount = 0;
-            let html = '';
-
-            internsList.forEach((name, idx) => {
-                const status = (targetData[monthKey] && targetData[monthKey][idx]) ? targetData[monthKey][idx][selectedMobileDay] || '' : '';
-                if (status === 'Ч' || status === 'Н' || status === 'К') dutyCount++;
-
-                const displayName = isCompactNames ? getShortName(name) : name;
-
-                html += `
-                    <div class="bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex items-center justify-between gap-2">
-                        <div class="truncate">
-                            <div class="font-bold text-xs text-slate-800 truncate">${displayName}</div>
-                            <div class="text-[10px] text-slate-500">${internPhones[name] || 'без телефону'}</div>
-                        </div>
-
-                        <!-- Status Quick Pills -->
-                        <div class="flex items-center gap-1 shrink-0">
-                            <button onclick="setCellStatusFromMobile(${idx}, ${selectedMobileDay}, '')" class="w-6 h-6 text-[10px] rounded font-bold border ${status===''?'bg-slate-700 text-white':'bg-slate-100 text-slate-500'}">Ø</button>
-                            <button onclick="setCellStatusFromMobile(${idx}, ${selectedMobileDay}, '+')" class="w-6 h-6 text-[10px] rounded font-bold border ${status==='+'?'bg-emerald-600 text-white':'bg-emerald-50 text-emerald-700 border-emerald-200'}">+</button>
-                            ${!isDept ? `
-                                <button onclick="setCellStatusFromMobile(${idx}, ${selectedMobileDay}, 'Ч')" class="w-6 h-6 text-[10px] rounded font-bold border ${status==='Ч'?'bg-blue-600 text-white':'bg-blue-50 text-blue-700 border-blue-200'}">Ч</button>
-                            ` : `
-                                <button onclick="setCellStatusFromMobile(${idx}, ${selectedMobileDay}, 'К')" class="w-6 h-6 text-[10px] rounded font-bold border ${status==='К'?'bg-indigo-600 text-white':'bg-indigo-50 text-indigo-700 border-indigo-200'}">К</button>
-                            `}
-                            <button onclick="setCellStatusFromMobile(${idx}, ${selectedMobileDay}, 'Н')" class="w-6 h-6 text-[10px] rounded font-bold border ${status==='Н'?'bg-purple-600 text-white':'bg-purple-50 text-purple-700 border-purple-200'}">Н</button>
-                            <button onclick="setCellStatusFromMobile(${idx}, ${selectedMobileDay}, 'В')" class="w-6 h-6 text-[10px] rounded font-bold border ${status==='В'?'bg-amber-500 text-white':'bg-amber-50 text-amber-800 border-amber-200'}">В</button>
-                            <button onclick="setCellStatusFromMobile(${idx}, ${selectedMobileDay}, 'Х')" class="w-6 h-6 text-[10px] rounded font-bold border ${status==='Х'?'bg-rose-600 text-white':'bg-rose-50 text-rose-700 border-rose-200'}">Х</button>
-                        </div>
-                    </div>
-                `;
-            });
-
-            container.innerHTML = html;
-            const countEl = document.getElementById('mobile-day-duty-count');
-            if (countEl) countEl.textContent = `${dutyCount} чергових`;
-        }
-
-        function setCellStatusFromMobile(idx, day, val) {
-            const monthKey = getMonthKey();
-            if (activeTab === 'dept') {
-                deptMatrixData[monthKey][idx][day] = val;
-                updateDeptRowAndTotals(idx, day);
-            } else {
-                matrixData[monthKey][idx][day] = val;
-                updateRowAndTotals(idx, day);
-            }
-            saveData();
-            renderMobileDayInternsList();
-        }
-
-        // Render Mobile Intern Selector and Grid
-        function renderMobileInternSelect() {
-            const select = document.getElementById('mobile-intern-select');
-            if (!select) return;
-
-            select.innerHTML = internsList.map((name, idx) => 
-                `<option value="${idx}">${name}</option>`
-            ).join('');
-
-            renderMobileInternCalendar();
-        }
-
-        function renderMobileInternCalendar() {
-            const select = document.getElementById('mobile-intern-select');
-            if (!select) return;
-
-            const idx = parseInt(select.value) || 0;
-            const grid = document.getElementById('mobile-intern-calendar-grid');
-            if (!grid) return;
-
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            const monthKey = getMonthKey();
-            const isDept = (activeTab === 'dept');
-            const targetData = isDept ? deptMatrixData : matrixData;
-
-            let shiftsCount = 0;
-            let html = '';
-
-            for (let day = 1; day <= daysCount; day++) {
-                const status = (targetData[monthKey] && targetData[monthKey][idx]) ? targetData[monthKey][idx][day] || '' : '';
-                const isWknd = isWeekendDay(day);
-                const wdName = UA_WEEKDAYS[getDayOfWeekIndex(day)];
-
-                if (status === 'Ч' || status === 'Н' || status === 'К') shiftsCount++;
-
-                const colorClass = getCellColorClasses(status, isWknd);
-
-                html += `
-                    <div onclick="cycleInternStatusMobile(${idx}, ${day})" class="p-2 rounded-lg text-center cursor-pointer shadow-sm border border-slate-200 flex flex-col items-center justify-between h-14 ${colorClass}">
-                        <div class="text-[9px] opacity-70">${day} (${wdName})</div>
-                        <div class="font-extrabold text-sm">${status || '-'}</div>
-                    </div>
-                `;
-            }
-
-            grid.innerHTML = html;
-            const badge = document.getElementById('mobile-intern-shifts-badge');
-            if (badge) badge.textContent = `Всього змін: ${shiftsCount}`;
-        }
-
-        function cycleInternStatusMobile(idx, day) {
-            const monthKey = getMonthKey();
-            const isDept = (activeTab === 'dept');
-            const current = isDept ? deptMatrixData[monthKey][idx][day] : matrixData[monthKey][idx][day];
-
-            const mainStatuses = ['', '+', 'Ч', 'Н', 'В', 'Х'];
-            const deptStatuses = ['', '+', 'К', 'Н', 'В', 'Х'];
-            const list = isDept ? deptStatuses : mainStatuses;
-
-            let nextIdx = (list.indexOf(current) + 1) % list.length;
-            const newVal = list[nextIdx];
-
-            if (isDept) {
-                deptMatrixData[monthKey][idx][day] = newVal;
-                updateDeptRowAndTotals(idx, day);
-            } else {
-                matrixData[monthKey][idx][day] = newVal;
-                updateRowAndTotals(idx, day);
-            }
-            saveData();
-            renderMobileInternCalendar();
-        }
-
-        function setMobileActiveTool(tool) {
-            if (activeTab === 'dept') {
-                activeDeptTool = tool;
-            } else {
-                activeTool = tool;
-            }
-            showToast(`Обрано мобільний інструмент: [ ${tool || 'Очистити'} ]`, 'info');
-        }
-
-        // Dynamically update CSS column width variable based on screen size
-        function updateDynamicLayout() {
-            const isMobile = window.innerWidth < 640;
-            if (isMobile) {
-                const nameWidth = isCompactNames ? '95px' : '125px';
-                document.documentElement.style.setProperty('--name-col-width', nameWidth);
-                document.documentElement.style.setProperty('--num-col-width', `24px`);
-                document.documentElement.style.setProperty('--phone-col-width', `80px`);
-                return;
-            }
-
-            let maxCharLen = 0;
-            internsList.forEach(name => {
-                const text = isCompactNames ? getShortName(name) : name;
-                if (text && text.length > maxCharLen) maxCharLen = text.length;
-            });
-            
-            const calculatedWidth = Math.max(180, Math.ceil(maxCharLen * 8.5) + 55);
-            document.documentElement.style.setProperty('--num-col-width', `32px`);
-            document.documentElement.style.setProperty('--name-col-width', `${calculatedWidth}px`);
-            document.documentElement.style.setProperty('--phone-col-width', `110px`);
-        }
-
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            if (!container) return;
-
-            const toast = document.createElement('div');
-            const bgClass = type === 'success' ? 'bg-emerald-800 text-white' : 'bg-slate-800 text-white';
-            
-            toast.className = `toast-animate px-3 py-2 rounded-xl shadow-xl text-xs font-medium flex items-center gap-2 border border-white/10 ${bgClass}`;
-            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> <span>${message}</span>`;
-            
-            container.appendChild(toast);
-            setTimeout(() => {
-                toast.remove();
-            }, 2500);
-        }
-
-        // Tab Switching Handler
-        function switchTab(tabName) {
-            activeTab = tabName;
-            const matrixTabBtn = document.getElementById('tab-btn-matrix');
-            const deptTabBtn = document.getElementById('tab-btn-dept');
-            const matrixContent = document.getElementById('tab-content-matrix');
-            const deptContent = document.getElementById('tab-content-dept');
-
-            if (tabName === 'matrix') {
-                matrixTabBtn.classList.add('active-tab');
-                deptTabBtn.classList.remove('active-tab');
-                matrixContent.classList.remove('hidden');
-                deptContent.classList.add('hidden');
-            } else {
-                deptTabBtn.classList.add('active-tab');
-                matrixTabBtn.classList.remove('active-tab');
-                deptContent.classList.remove('hidden');
-                matrixContent.classList.add('hidden');
-                renderDeptHeader();
-                renderDeptTableBody();
-            }
-
-            if (mobileViewMode === 'days') renderMobileDayPicker();
-            else if (mobileViewMode === 'interns') renderMobileInternSelect();
-        }
-
-        // Modal Controls
-        function openExportModal() { document.getElementById('export-modal')?.classList.remove('hidden'); }
-        function closeExportModal() { document.getElementById('export-modal')?.classList.add('hidden'); }
-        function showResetConfirmation() { document.getElementById('reset-modal')?.classList.remove('hidden'); }
-        function closeResetModal() { document.getElementById('reset-modal')?.classList.add('hidden'); }
-
-        function openAddInternModal() {
-            const input = document.getElementById('new-intern-name-input');
-            const phoneInput = document.getElementById('new-intern-phone-input');
-            if (input) input.value = '';
-            if (phoneInput) phoneInput.value = '';
-            document.getElementById('add-intern-modal')?.classList.remove('hidden');
-        }
-        function closeAddInternModal() { document.getElementById('add-intern-modal')?.classList.add('hidden'); }
-
-        function submitAddIntern() {
-            const input = document.getElementById('new-intern-name-input');
-            const phoneInput = document.getElementById('new-intern-phone-input');
-            const rawName = input ? input.value.trim() : '';
-            const phone = phoneInput ? phoneInput.value.trim() : '';
-
-            if (rawName) {
-                const formattedName = formatInternName(rawName);
-                if (!internsList.includes(formattedName)) {
-                    internsList.push(formattedName);
-                    sortInternsList();
-                }
-                if (phone) {
-                    internPhones[formattedName] = phone;
-                }
-
-                ensureMonthExists(currentYear, currentMonth);
-                saveData();
-                updateDynamicLayout();
-                renderTableBody();
-                renderDeptTableBody();
-                closeAddInternModal();
-                showToast(`Додано інтерна: ${formattedName}`, 'success');
-            }
-        }
-
-        function sortInternsList() {
-            internsList.sort((a, b) => a.localeCompare(b, 'uk'));
-        }
-
-        function openDeleteInternModal(idx) {
-            pendingDeleteInternIdx = idx;
-            const textEl = document.getElementById('delete-intern-name-text');
-            if (textEl) textEl.textContent = `Ви дійсно бажаєте видалити інтерна "${internsList[idx]}"?`;
-            document.getElementById('delete-intern-modal')?.classList.remove('hidden');
-        }
-
-        function closeDeleteInternModal() {
-            pendingDeleteInternIdx = null;
-            document.getElementById('delete-intern-modal')?.classList.add('hidden');
-        }
-
-        function confirmDeleteIntern() {
-            if (pendingDeleteInternIdx !== null && pendingDeleteInternIdx >= 0) {
-                const name = internsList[pendingDeleteInternIdx];
-                internsList.splice(pendingDeleteInternIdx, 1);
-                
-                const monthKey = getMonthKey();
-                if (matrixData[monthKey]) {
-                    delete matrixData[monthKey][pendingDeleteInternIdx];
-                }
-                if (deptMatrixData[monthKey]) {
-                    delete deptMatrixData[monthKey][pendingDeleteInternIdx];
-                }
-
-                saveData();
-                updateDynamicLayout();
-                renderTableBody();
-                renderDeptTableBody();
-                closeDeleteInternModal();
-                showToast(`Видалено інтерна: ${name}`);
-            }
-        }
-
-        function getMonthKey() {
-            return `${currentYear}-${currentMonth}`;
-        }
-
-        function getDaysInMonth(year, month) {
-            return new Date(year, month, 0).getDate();
-        }
-
-        function getDayOfWeekIndex(day) {
-            const dt = new Date(currentYear, currentMonth - 1, day);
-            return (dt.getDay() + 6) % 7; // Convert to 0 = Mon, 6 = Sun
-        }
-
-        function isWeekendDay(day) {
-            const wd = getDayOfWeekIndex(day);
-            return wd === 5 || wd === 6;
-        }
-
-        function initData() {
-            const savedInterns = localStorage.getItem('duty_schedule_interns_list_v5');
-            if (savedInterns) {
-                try { 
-                    const parsed = JSON.parse(savedInterns);
-                    internsList = parsed.map(formatInternName);
-                } catch(e) { console.error(e); }
-            } else {
-                internsList = DEFAULT_INTERNS_LIST.map(formatInternName);
-            }
-            sortInternsList();
-
-            const savedPhones = localStorage.getItem('duty_schedule_interns_phones_v5');
-            if (savedPhones) {
-                try { internPhones = JSON.parse(savedPhones); } catch(e) { console.error(e); }
-            }
-
-            const savedData = localStorage.getItem('duty_schedule_multi_months_v5');
-            if (savedData) {
-                try {
-                    const parsed = JSON.parse(savedData);
-                    matrixData = parsed.matrixData || {};
-                    deptMatrixData = parsed.deptMatrixData || {};
-                } catch(e) { console.error(e); }
-            }
-
-            ensureMonthExists(currentYear, currentMonth);
-            updateDynamicLayout();
-        }
-
-        function ensureMonthExists(year, month) {
-            const key = `${year}-${month}`;
-            if (!matrixData[key]) matrixData[key] = {};
-            if (!deptMatrixData[key]) deptMatrixData[key] = {};
-
-            const daysCount = getDaysInMonth(year, month);
-            internsList.forEach((_, idx) => {
-                if (!matrixData[key][idx]) matrixData[key][idx] = {};
-                if (!deptMatrixData[key][idx]) deptMatrixData[key][idx] = {};
-
-                for (let day = 1; day <= daysCount; day++) {
-                    if (matrixData[key][idx][day] === undefined) {
-                        matrixData[key][idx][day] = "";
-                    }
-                    if (deptMatrixData[key][idx][day] === undefined) {
-                        deptMatrixData[key][idx][day] = "";
-                    }
-                }
-            });
-        }
-
-        function saveData() {
-            localStorage.setItem('duty_schedule_interns_list_v5', JSON.stringify(internsList));
-            localStorage.setItem('duty_schedule_interns_phones_v5', JSON.stringify(internPhones));
-            localStorage.setItem('duty_schedule_multi_months_v5', JSON.stringify({
-                matrixData: matrixData,
-                deptMatrixData: deptMatrixData
-            }));
-        }
-
-        function updateHeaderUI() {
-            const monthName = MONTH_NAMES_UA[currentMonth - 1];
-            document.getElementById('header-month-title').childNodes[0].nodeValue = `Чергування на ${monthName} `;
-            document.getElementById('header-year-badge').textContent = `${currentYear} р.`;
-            document.getElementById('month-select').value = currentMonth;
-            document.getElementById('year-select').value = currentYear;
-
-            const countTextEl = document.getElementById('interns-count-text');
-            if (countTextEl) countTextEl.textContent = `${internsList.length} осіб`;
-
-            const internsBadge = document.getElementById('tab-interns-count-badge');
-            if (internsBadge) internsBadge.textContent = internsList.length;
-
-            const deptBadge = document.getElementById('tab-dept-count-badge');
-            if (deptBadge) deptBadge.textContent = internsList.length;
-        }
-
-        function changeMonth(delta) {
-            currentMonth += delta;
-            if (currentMonth > 12) { currentMonth = 1; currentYear++; }
-            else if (currentMonth < 1) { currentMonth = 12; currentYear--; }
-            
-            ensureMonthExists(currentYear, currentMonth);
-            updateHeaderUI();
-            renderHeader();
-            renderTableBody();
-            renderDeptHeader();
-            renderDeptTableBody();
-
-            if (mobileViewMode === 'days') renderMobileDayPicker();
-            else if (mobileViewMode === 'interns') renderMobileInternSelect();
-        }
-
-        function onMonthSelectChange() {
-            currentMonth = parseInt(document.getElementById('month-select').value);
-            currentYear = parseInt(document.getElementById('year-select').value);
-            ensureMonthExists(currentYear, currentMonth);
-            updateHeaderUI();
-            renderHeader();
-            renderTableBody();
-            renderDeptHeader();
-            renderDeptTableBody();
-
-            if (mobileViewMode === 'days') renderMobileDayPicker();
-            else if (mobileViewMode === 'interns') renderMobileInternSelect();
-        }
-
-        function initToolPickers() {
-            // Main Tool Picker
-            const toolPicker = document.getElementById('tool-picker');
-            if (toolPicker) {
-                const toolButtons = toolPicker.querySelectorAll('.tool-btn');
-                toolButtons.forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        toolButtons.forEach(b => b.classList.remove('ring-2', 'ring-offset-1', 'ring-blue-500', 'shadow-md'));
-                        btn.classList.add('ring-2', 'ring-offset-1', 'ring-blue-500', 'shadow-md');
-                        activeTool = btn.dataset.tool;
-                    });
-                });
-                const defaultBtn = toolPicker.querySelector('.tool-btn.active');
-                if (defaultBtn) {
-                    defaultBtn.classList.add('ring-2', 'ring-offset-1', 'ring-blue-500', 'shadow-md');
-                    activeTool = defaultBtn.dataset.tool;
-                }
-            }
-
-            // Department Tool Picker
-            const deptToolPicker = document.getElementById('dept-tool-picker');
-            if (deptToolPicker) {
-                const deptToolButtons = deptToolPicker.querySelectorAll('.dept-tool-btn');
-                deptToolButtons.forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        deptToolButtons.forEach(b => b.classList.remove('ring-2', 'ring-offset-1', 'ring-indigo-500', 'shadow-md'));
-                        btn.classList.add('ring-2', 'ring-offset-1', 'ring-indigo-500', 'shadow-md');
-                        activeDeptTool = btn.dataset.tool;
-                    });
-                });
-                const defaultDeptBtn = deptToolPicker.querySelector('.dept-tool-btn.active');
-                if (defaultDeptBtn) {
-                    defaultDeptBtn.classList.add('ring-2', 'ring-offset-1', 'ring-indigo-500', 'shadow-md');
-                    activeDeptTool = defaultDeptBtn.dataset.tool;
-                }
-            }
-        }
-
-        function applyToolToCell(cell) {
-            if (!cell) return;
-            const idx = parseInt(cell.dataset.idx);
-            const day = parseInt(cell.dataset.day);
-            if (isNaN(idx) || isNaN(day)) return;
-
-            const monthKey = getMonthKey();
-            if (!matrixData[monthKey] || !matrixData[monthKey][idx]) return;
-
-            matrixData[monthKey][idx][day] = activeTool;
-            updateRowAndTotals(idx, day);
-            saveData();
-        }
-
-        function applyDeptToolToCell(cell) {
-            if (!cell) return;
-            const idx = parseInt(cell.dataset.idx);
-            const day = parseInt(cell.dataset.day);
-            if (isNaN(idx) || isNaN(day)) return;
-
-            const monthKey = getMonthKey();
-            if (!deptMatrixData[monthKey] || !deptMatrixData[monthKey][idx]) return;
-
-            deptMatrixData[monthKey][idx][day] = activeDeptTool;
-            updateDeptRowAndTotals(idx, day);
-            saveData();
-        }
-
-        function setupCellInteractions() {
-            // Main Matrix Mouse & Touch Interactions
-            const tbody = document.getElementById('schedule-tbody');
-            if (tbody) {
-                tbody.addEventListener('mousedown', (e) => {
-                    const cell = e.target.closest('td.cell-slot');
-                    if (cell) {
-                        isMouseDown = true;
-                        applyToolToCell(cell);
-                    }
-                });
-                tbody.addEventListener('mouseover', (e) => {
-                    if (isMouseDown) {
-                        const cell = e.target.closest('td.cell-slot');
-                        if (cell) applyToolToCell(cell);
-                    }
-                });
-
-                tbody.addEventListener('touchstart', (e) => {
-                    const touch = e.touches[0];
-                    const cell = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('td.cell-slot');
-                    if (cell) {
-                        isMouseDown = true;
-                        applyToolToCell(cell);
-                    }
-                }, { passive: true });
-
-                tbody.addEventListener('touchmove', (e) => {
-                    if (isMouseDown) {
-                        const touch = e.touches[0];
-                        const cell = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('td.cell-slot');
-                        if (cell) applyToolToCell(cell);
-                    }
-                }, { passive: true });
-            }
-
-            // Department Matrix Mouse & Touch Interactions
-            const deptTbody = document.getElementById('dept-schedule-tbody');
-            if (deptTbody) {
-                deptTbody.addEventListener('mousedown', (e) => {
-                    const cell = e.target.closest('td.dept-cell-slot');
-                    if (cell) {
-                        isDeptMouseDown = true;
-                        applyDeptToolToCell(cell);
-                    }
-                });
-                deptTbody.addEventListener('mouseover', (e) => {
-                    if (isDeptMouseDown) {
-                        const cell = e.target.closest('td.dept-cell-slot');
-                        if (cell) applyDeptToolToCell(cell);
-                    }
-                });
-
-                deptTbody.addEventListener('touchstart', (e) => {
-                    const touch = e.touches[0];
-                    const cell = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('td.dept-cell-slot');
-                    if (cell) {
-                        isDeptMouseDown = true;
-                        applyDeptToolToCell(cell);
-                    }
-                }, { passive: true });
-
-                deptTbody.addEventListener('touchmove', (e) => {
-                    if (isDeptMouseDown) {
-                        const touch = e.touches[0];
-                        const cell = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('td.dept-cell-slot');
-                        if (cell) applyDeptToolToCell(cell);
-                    }
-                }, { passive: true });
-            }
-
-            document.addEventListener('mouseup', () => { isMouseDown = false; isDeptMouseDown = false; });
-            document.addEventListener('touchend', () => { isMouseDown = false; isDeptMouseDown = false; });
-
-            window.addEventListener('resize', () => {
-                updateDynamicLayout();
-            });
-        }
-
-        function renderHeader() {
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            const dayAnchor = document.getElementById('day-headers-anchor');
-            const weekdayAnchor = document.getElementById('weekday-headers-anchor');
-
-            document.querySelectorAll('.generated-day-header').forEach(el => el.remove());
-            document.querySelectorAll('.generated-weekday-header').forEach(el => el.remove());
-
-            let dayHtml = '';
-            let weekdayHtml = '';
-
-            for (let day = 1; day <= daysCount; day++) {
-                const isWknd = isWeekendDay(day);
-                const wdName = UA_WEEKDAYS[getDayOfWeekIndex(day)];
-
-                const bgHeaderClass = isWknd ? 'bg-rose-700 text-rose-100' : 'bg-navy-800 text-white';
-                const bgWkndClass = isWknd ? 'bg-rose-800 text-rose-100' : 'bg-slate-700 text-slate-200';
-
-                dayHtml += `
-                    <th class="generated-day-header day-col-header py-1 px-0 text-center border-b border-slate-700 ${bgHeaderClass}">
-                        <div class="font-bold text-[10px] sm:text-xs">${day}</div>
-                    </th>
-                `;
-
-                weekdayHtml += `
-                    <th class="generated-weekday-header py-0.5 px-0 text-center text-[9px] sm:text-[10px] font-medium border-b border-slate-600 ${bgWkndClass}">
-                        ${wdName}
-                    </th>
-                `;
-            }
-
-            dayAnchor.insertAdjacentHTML('beforebegin', dayHtml);
-            weekdayAnchor.insertAdjacentHTML('beforebegin', weekdayHtml);
-        }
-
-        function renderDeptHeader() {
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            const dayAnchor = document.getElementById('dept-day-headers-anchor');
-            const weekdayAnchor = document.getElementById('dept-weekday-headers-anchor');
-
-            document.querySelectorAll('.generated-dept-day-header').forEach(el => el.remove());
-            document.querySelectorAll('.generated-dept-weekday-header').forEach(el => el.remove());
-
-            let dayHtml = '';
-            let weekdayHtml = '';
-
-            for (let day = 1; day <= daysCount; day++) {
-                const isWknd = isWeekendDay(day);
-                const wdName = UA_WEEKDAYS[getDayOfWeekIndex(day)];
-
-                const bgHeaderClass = isWknd ? 'bg-rose-700 text-rose-100' : 'bg-navy-800 text-white';
-                const bgWkndClass = isWknd ? 'bg-rose-800 text-rose-100' : 'bg-slate-700 text-slate-200';
-
-                dayHtml += `
-                    <th class="generated-dept-day-header day-col-header py-1 px-0 text-center border-b border-slate-700 ${bgHeaderClass}">
-                        <div class="font-bold text-[10px] sm:text-xs">${day}</div>
-                    </th>
-                `;
-
-                weekdayHtml += `
-                    <th class="generated-dept-weekday-header py-0.5 px-0 text-center text-[9px] sm:text-[10px] font-medium border-b border-slate-600 ${bgWkndClass}">
-                        ${wdName}
-                    </th>
-                `;
-            }
-
-            dayAnchor.insertAdjacentHTML('beforebegin', dayHtml);
-            weekdayAnchor.insertAdjacentHTML('beforebegin', weekdayHtml);
-        }
-
-        function getCellColorClasses(val, isWknd) {
-            switch(val) {
-                case '+': return 'bg-emerald-100 text-emerald-800 font-bold hover:bg-emerald-200';
-                case 'Ч': return 'bg-blue-600 text-white font-extrabold shadow-inner hover:bg-blue-700';
-                case 'Н': return 'bg-purple-600 text-white font-extrabold shadow-inner hover:bg-purple-700';
-                case 'К': return 'bg-indigo-600 text-white font-extrabold shadow-inner hover:bg-indigo-700';
-                case 'В': return 'bg-amber-100 text-amber-900 font-bold hover:bg-amber-200';
-                case 'Х': return 'bg-rose-200 text-rose-900 font-bold hover:bg-rose-300';
-                default: return isWknd ? 'bg-rose-50/60 hover:bg-rose-100/80 text-slate-400' : 'hover:bg-slate-100 text-slate-400';
-            }
-        }
-
-        function renderTableBody() {
-            const tbody = document.getElementById('schedule-tbody');
-            tbody.innerHTML = '';
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            const monthKey = getMonthKey();
-
-            internsList.forEach((name, idx) => {
-                const tr = document.createElement('tr');
-                tr.className = 'divide-x divide-slate-200 hover:bg-blue-50/30 transition-colors';
-                tr.dataset.internIdx = idx;
-
-                const displayName = isCompactNames ? getShortName(name) : name;
-
-                let html = `
-                    <td class="sticky-col-num bg-white px-0.5 py-1 text-center font-bold text-slate-500 border-r border-slate-200">
-                        ${idx + 1}
-                    </td>
-                    <td class="sticky-col-name bg-white px-0.5 py-1 text-left font-bold text-slate-800 border-r border-slate-200 truncate">
-                        <input type="text" value="${displayName}" 
-                            onchange="updateInternName(${idx}, this.value)" 
-                            class="w-full bg-transparent hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded px-1 py-0.5 font-bold text-slate-800 text-[10px] sm:text-xs border border-transparent focus:border-blue-300 outline-none transition truncate"
-                            title="${name}">
-                    </td>
-                `;
-
-                for (let day = 1; day <= daysCount; day++) {
-                    const isWknd = isWeekendDay(day);
-                    const val = (matrixData[monthKey][idx] && matrixData[monthKey][idx][day]) || '';
-                    const colorClass = getCellColorClasses(val, isWknd);
-
-                    html += `
-                        <td data-day="${day}" data-idx="${idx}"
-                            class="cell-slot cursor-pointer select-none py-1.5 px-0 text-center text-[10px] sm:text-xs transition-all border-b border-slate-200 ${colorClass}">
-                            ${val}
-                        </td>
-                    `;
-                }
-
-                const shiftsCount = calculateInternShifts(idx);
-                html += `
-                    <td class="row-total-cell px-0.5 py-1.5 text-center font-extrabold text-blue-900 bg-slate-50 text-[11px]">
-                        ${shiftsCount}
-                    </td>
-                    <td class="no-print px-0.5 py-1 text-left bg-white">
-                        <div class="flex items-center gap-0.5">
-                            <button onclick="fillRowAvailable(${idx})" class="text-[8px] sm:text-[9px] px-1 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200" title="Доступність у будні">
-                                +Будні
-                            </button>
-                            <button onclick="openDeleteInternModal(${idx})" class="text-[9px] px-1 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition" title="Видалити">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                        </div>
-                    </td>
-                `;
-
-                tr.innerHTML = html;
-                tbody.appendChild(tr);
-            });
-
-            renderDailyFooterTotals();
-            updateStatistics();
-            updateHeaderUI();
-        }
-
-        function renderDeptTableBody() {
-            const tbody = document.getElementById('dept-schedule-tbody');
-            if (!tbody) return;
-
-            tbody.innerHTML = '';
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            const monthKey = getMonthKey();
-
-            internsList.forEach((name, idx) => {
-                const phone = internPhones[name] || '';
-                const displayName = isCompactNames ? getShortName(name) : name;
-
-                const tr = document.createElement('tr');
-                tr.className = 'divide-x divide-slate-200 hover:bg-indigo-50/30 transition-colors';
-                tr.dataset.deptInternIdx = idx;
-
-                let html = `
-                    <td class="sticky-col-num bg-white px-0.5 py-1 text-center font-bold text-slate-500 border-r border-slate-200">
-                        ${idx + 1}
-                    </td>
-                    <td class="sticky-col-name bg-white px-0.5 py-1 text-left font-bold text-slate-800 border-r border-slate-200 truncate">
-                        <input type="text" value="${displayName}" 
-                            onchange="updateInternName(${idx}, this.value)" 
-                            class="w-full bg-transparent hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-indigo-500 rounded px-1 py-0.5 font-bold text-slate-800 text-[10px] sm:text-xs border border-transparent focus:border-indigo-300 outline-none transition truncate"
-                            title="${name}">
-                    </td>
-                    <td class="sticky-col-phone bg-white px-0.5 py-1 text-left border-r border-slate-200">
-                        <input type="text" value="${phone}" 
-                            onchange="updateInternPhone('${name}', this.value)" 
-                            placeholder="0XXXXXXXXX"
-                            class="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-indigo-500 rounded px-1 py-0.5 text-[10px] text-slate-700 border border-slate-200 outline-none transition">
-                    </td>
-                `;
-
-                for (let day = 1; day <= daysCount; day++) {
-                    const isWknd = isWeekendDay(day);
-                    const val = (deptMatrixData[monthKey][idx] && deptMatrixData[monthKey][idx][day]) || '';
-                    const colorClass = getCellColorClasses(val, isWknd);
-
-                    html += `
-                        <td data-day="${day}" data-idx="${idx}"
-                            class="dept-cell-slot cursor-pointer select-none py-1.5 px-0 text-center text-[10px] sm:text-xs transition-all border-b border-slate-200 ${colorClass}">
-                            ${val}
-                        </td>
-                    `;
-                }
-
-                const shiftsCount = calculateInternDeptShifts(idx);
-                html += `
-                    <td class="dept-row-total-cell px-0.5 py-1.5 text-center font-extrabold text-indigo-900 bg-indigo-50 text-[11px]">
-                        ${shiftsCount}
-                    </td>
-                    <td class="no-print px-0.5 py-1 text-left bg-white">
-                        <div class="flex items-center gap-0.5">
-                            <button onclick="openDeleteInternModal(${idx})" class="text-[9px] px-1 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition" title="Видалити">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                        </div>
-                    </td>
-                `;
-
-                tr.innerHTML = html;
-                tbody.appendChild(tr);
-            });
-
-            renderDeptDailyFooterTotals();
-            updateHeaderUI();
-        }
-
-        function updateInternName(idx, newName) {
-            const formatted = formatInternName(newName);
-            if (formatted) {
-                const oldName = internsList[idx];
-                if (internPhones[oldName]) {
-                    internPhones[formatted] = internPhones[oldName];
-                    delete internPhones[oldName];
-                }
-                internsList[idx] = formatted;
-                sortInternsList();
-                saveData();
-                updateDynamicLayout();
-                renderTableBody();
-                renderDeptTableBody();
-            }
-        }
-
-        function updateInternPhone(name, phone) {
-            internPhones[name] = phone.trim();
-            saveData();
-        }
-
-        function calculateInternShifts(idx) {
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            const monthKey = getMonthKey();
-            let count = 0;
-            for (let d = 1; d <= daysCount; d++) {
-                const v = matrixData[monthKey][idx] ? matrixData[monthKey][idx][d] : '';
-                if (v === 'Ч' || v === 'Н') count++;
-            }
-            return count;
-        }
-
-        function calculateInternDeptShifts(idx) {
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            const monthKey = getMonthKey();
-            let count = 0;
-            for (let d = 1; d <= daysCount; d++) {
-                const v = deptMatrixData[monthKey][idx] ? deptMatrixData[monthKey][idx][d] : '';
-                if (v === 'К') count++;
-            }
-            return count;
-        }
-
-        function calculateDayDuties(day) {
-            const monthKey = getMonthKey();
-            let count = 0;
-            internsList.forEach((_, idx) => {
-                const v = matrixData[monthKey][idx] ? matrixData[monthKey][idx][day] : '';
-                if (v === 'Ч' || v === 'Н') count++;
-            });
-            return count;
-        }
-
-        function calculateDeptDayDuties(day) {
-            const monthKey = getMonthKey();
-            let count = 0;
-            internsList.forEach((_, idx) => {
-                const v = deptMatrixData[monthKey][idx] ? deptMatrixData[monthKey][idx][day] : '';
-                if (v === 'К') count++;
-            });
-            return count;
-        }
-
-        function updateStatistics() {
-            const internsCount = internsList.length;
-            let totalShifts = 0;
-            internsList.forEach((_, idx) => {
-                totalShifts += calculateInternShifts(idx);
-            });
-            const avgShifts = internsCount > 0 ? (totalShifts / internsCount).toFixed(1) : '0.0';
-
-            const countEl = document.getElementById('stat-interns-count');
-            const totalEl = document.getElementById('stat-total-shifts');
-            const avgEl = document.getElementById('stat-avg-shifts');
-
-            if (countEl) countEl.textContent = internsCount;
-            if (totalEl) totalEl.textContent = totalShifts;
-            if (avgEl) avgEl.textContent = avgShifts;
-        }
-
-        function updateRowAndTotals(internIdx, day) {
-            const monthKey = getMonthKey();
-            const cell = document.querySelector(`td.cell-slot[data-idx="${internIdx}"][data-day="${day}"]`);
-            if (cell) {
-                const isWknd = isWeekendDay(day);
-                const val = matrixData[monthKey][internIdx][day] || '';
-                cell.className = `cell-slot cursor-pointer select-none py-1.5 px-0 text-center text-xs transition-all border-b border-slate-200 ${getCellColorClasses(val, isWknd)}`;
-                cell.textContent = val;
-            }
-
-            const tr = document.querySelector(`tr[data-intern-idx="${internIdx}"]`);
-            if (tr) {
-                const totalCell = tr.querySelector('.row-total-cell');
-                if (totalCell) totalCell.textContent = calculateInternShifts(internIdx);
-            }
-
-            const dayFooterCell = document.querySelector(`td.day-footer-total[data-day="${day}"]`);
-            if (dayFooterCell) {
-                const count = calculateDayDuties(day);
-                dayFooterCell.textContent = count;
-                dayFooterCell.className = count === 0 
-                    ? "day-footer-total px-0.5 py-2 text-center text-xs font-bold text-rose-600 bg-rose-50"
-                    : "day-footer-total px-0.5 py-2 text-center text-xs font-bold text-slate-800 bg-slate-100";
-            }
-
-            let grandTotal = 0;
-            internsList.forEach((_, idx) => grandTotal += calculateInternShifts(idx));
-            document.getElementById('grand-total-cell').textContent = grandTotal;
-
-            updateStatistics();
-        }
-
-        function updateDeptRowAndTotals(internIdx, day) {
-            const monthKey = getMonthKey();
-            const cell = document.querySelector(`td.dept-cell-slot[data-idx="${internIdx}"][data-day="${day}"]`);
-            if (cell) {
-                const isWknd = isWeekendDay(day);
-                const val = deptMatrixData[monthKey][internIdx][day] || '';
-                cell.className = `dept-cell-slot cursor-pointer select-none py-1.5 px-0 text-center text-xs transition-all border-b border-slate-200 ${getCellColorClasses(val, isWknd)}`;
-                cell.textContent = val;
-            }
-
-            const tr = document.querySelector(`tr[data-dept-intern-idx="${internIdx}"]`);
-            if (tr) {
-                const totalCell = tr.querySelector('.dept-row-total-cell');
-                if (totalCell) totalCell.textContent = calculateInternDeptShifts(internIdx);
-            }
-
-            const dayFooterCell = document.querySelector(`td.dept-day-footer-total[data-day="${day}"]`);
-            if (dayFooterCell) {
-                const count = calculateDeptDayDuties(day);
-                dayFooterCell.textContent = count;
-                dayFooterCell.className = count === 0 
-                    ? "dept-day-footer-total px-0.5 py-2 text-center text-xs font-bold text-rose-600 bg-rose-50"
-                    : "dept-day-footer-total px-0.5 py-2 text-center text-xs font-bold text-slate-800 bg-slate-100";
-            }
-
-            let grandTotal = 0;
-            internsList.forEach((_, idx) => grandTotal += calculateInternDeptShifts(idx));
-            document.getElementById('dept-grand-total-cell').textContent = grandTotal;
-        }
-
-        function renderDailyFooterTotals() {
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            const anchor = document.getElementById('daily-totals-anchor');
-
-            document.querySelectorAll('.day-footer-total').forEach(el => el.remove());
-
-            let html = '';
-            let grandTotal = 0;
-
-            for (let day = 1; day <= daysCount; day++) {
-                const count = calculateDayDuties(day);
-                grandTotal += count;
-                const alertBg = (count === 0) ? 'text-rose-600 bg-rose-50' : 'text-slate-800 bg-slate-100';
-
-                html += `
-                    <td data-day="${day}" class="day-footer-total px-0.5 py-2 text-center text-xs font-bold ${alertBg}">
-                        ${count}
-                    </td>
-                `;
-            }
-
-            anchor.insertAdjacentHTML('beforebegin', html);
-            document.getElementById('grand-total-cell').textContent = grandTotal;
-        }
-
-        function renderDeptDailyFooterTotals() {
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            const anchor = document.getElementById('dept-daily-totals-anchor');
-
-            document.querySelectorAll('.dept-day-footer-total').forEach(el => el.remove());
-
-            let html = '';
-            let grandTotal = 0;
-
-            for (let day = 1; day <= daysCount; day++) {
-                const count = calculateDeptDayDuties(day);
-                grandTotal += count;
-                const alertBg = (count === 0) ? 'text-slate-400 bg-slate-50' : 'text-indigo-900 bg-indigo-50 font-bold';
-
-                html += `
-                    <td data-day="${day}" class="dept-day-footer-total px-0.5 py-2 text-center text-xs ${alertBg}">
-                        ${count}
-                    </td>
-                `;
-            }
-
-            anchor.insertAdjacentHTML('beforebegin', html);
-            document.getElementById('dept-grand-total-cell').textContent = grandTotal;
-        }
-
-        function autoFillWeekdaysAvailable() {
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            const monthKey = getMonthKey();
-            internsList.forEach((_, idx) => {
-                for (let day = 1; day <= daysCount; day++) {
-                    if (!isWeekendDay(day) && !matrixData[monthKey][idx][day]) {
-                        matrixData[monthKey][idx][day] = '+';
-                    }
-                }
-            });
-            saveData();
-            renderTableBody();
-            showToast("Доступність '+' встановлено на всі будні");
-        }
-
-        function fillRowAvailable(idx) {
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            const monthKey = getMonthKey();
-            for (let day = 1; day <= daysCount; day++) {
-                if (!isWeekendDay(day)) matrixData[monthKey][idx][day] = '+';
-            }
-            saveData();
-            renderTableBody();
-        }
-
-        function confirmResetAll() {
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            const monthKey = getMonthKey();
-            internsList.forEach((_, idx) => {
-                for (let day = 1; day <= daysCount; day++) {
-                    matrixData[monthKey][idx][day] = '';
-                    deptMatrixData[monthKey][idx][day] = '';
-                }
-            });
-            saveData();
-            closeResetModal();
-            renderTableBody();
-            renderDeptTableBody();
-            if (mobileViewMode === 'days') renderMobileDayPicker();
-            else if (mobileViewMode === 'interns') renderMobileInternSelect();
-            showToast("Всі відмітки поточного місяця скинуто");
-        }
-
-        function exportToPDF() {
-            closeExportModal();
-
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            const monthName = MONTH_NAMES_UA[currentMonth - 1];
-            const monthKey = getMonthKey();
-
-            const element = document.createElement('div');
-            element.className = 'pdf-export-container bg-white text-slate-900 p-3';
-            element.style.width = '1060px';
-
-            let html = `
-                <div style="text-align: center; margin-bottom: 6px;">
-                    <h2 style="font-size: 16px; font-weight: bold; color: #1e3a8a; margin: 0;">
-                        ГРАФІК ЧЕРГУВАННЯ ІНТЕРНІВ НА ${monthName.toUpperCase()} ${currentYear} РОКУ
-                    </h2>
-                    <p style="font-size: 9px; color: #475569; margin-top: 1px;">
-                        Список інтернів (${internsList.length} осіб)
-                    </p>
-                </div>
-                <table style="width: 100%; border-collapse: collapse; font-size: 8px; text-align: center; font-family: 'Inter', sans-serif;">
-                    <thead>
-                        <tr style="background-color: #1e3a8a; color: white;">
-                            <th style="border: 1px solid #334155; padding: 3px; width: 20px;">№</th>
-                            <th style="border: 1px solid #334155; padding: 3px; text-align: left; width: 180px;">ПІБ інтерна</th>
-            `;
-
-            for (let day = 1; day <= daysCount; day++) {
-                const isWknd = isWeekendDay(day);
-                const bg = isWknd ? '#be123c' : '#1e3a8a';
-                html += `<th style="border: 1px solid #334155; padding: 2px 1px; background-color: ${bg}; color: white; width: 22px;">${day}</th>`;
-            }
-
-            html += `
-                            <th style="border: 1px solid #334155; padding: 3px; width: 30px;">Змін</th>
-                        </tr>
-                        <tr style="background-color: #334155; color: #cbd5e1; font-size: 7px;">
-                            <th style="border: 1px solid #475569;"></th>
-                            <th style="border: 1px solid #475569; text-align: left; padding-left: 4px;">День тижня</th>
-            `;
-
-            for (let day = 1; day <= daysCount; day++) {
-                const wdName = UA_WEEKDAYS[getDayOfWeekIndex(day)];
-                const isWknd = isWeekendDay(day);
-                const bg = isWknd ? '#9f1239' : '#334155';
-                html += `<th style="border: 1px solid #475569; padding: 1px;">${wdName}</th>`;
-            }
-
-            html += `
-                            <th style="border: 1px solid #475569;"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            const currentMatrix = matrixData[monthKey] || {};
-
-            internsList.forEach((name, idx) => {
-                const rowData = currentMatrix[idx] || {};
-                const bgRow = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
-
-                let shifts = 0;
-                for (let d = 1; d <= daysCount; d++) {
-                    if (rowData[d] === 'Ч' || rowData[d] === 'Н') shifts++;
-                }
-
-                html += `<tr style="background-color: ${bgRow};">
-                    <td style="border: 1px solid #cbd5e1; padding: 1px; font-weight: bold; color: #64748b;">${idx + 1}</td>
-                    <td style="border: 1px solid #cbd5e1; padding: 1px 3px; text-align: left; font-weight: 700; color: #1e293b;">${name}</td>
-                `;
-
-                for (let day = 1; day <= daysCount; day++) {
-                    const val = rowData[day] || '';
-                    const isWknd = isWeekendDay(day);
-
-                    let cellBg = isWknd ? '#fef2f2' : bgRow;
-                    let cellColor = '#334155';
-                    let cellWeight = 'normal';
-
-                    if (val === '+') { cellBg = '#dcfce7'; cellColor = '#15803d'; cellWeight = 'bold'; }
-                    else if (val === 'Ч') { cellBg = '#2563eb'; cellColor = '#ffffff'; cellWeight = 'bold'; }
-                    else if (val === 'Н') { cellBg = '#9333ea'; cellColor = '#ffffff'; cellWeight = 'bold'; }
-                    else if (val === 'В') { cellBg = '#fef3c7'; cellColor = '#92400e'; cellWeight = 'bold'; }
-                    else if (val === 'Х') { cellBg = '#fecdd3'; cellColor = '#9f1239'; cellWeight = 'bold'; }
-
-                    html += `<td style="border: 1px solid #cbd5e1; padding: 1px; background-color: ${cellBg}; color: ${cellColor}; font-weight: ${cellWeight};">${val}</td>`;
-                }
-
-                html += `<td style="border: 1px solid #cbd5e1; padding: 1px; font-weight: bold; color: #1e3a8a; background-color: #eff6ff;">${shifts}</td></tr>`;
-            });
-
-            html += `
-                    <tr style="background-color: #e2e8f0; font-weight: bold;">
-                        <td style="border: 1px solid #94a3b8; padding: 2px;" colspan="2">Чергових на день:</td>
-            `;
-
-            let grandTotal = 0;
-            for (let day = 1; day <= daysCount; day++) {
-                let dayCount = 0;
-                internsList.forEach((_, idx) => {
-                    const v = (currentMatrix[idx] || {})[day];
-                    if (v === 'Ч' || v === 'Н') dayCount++;
-                });
-                grandTotal += dayCount;
-                const bg = dayCount === 0 ? '#ffe4e6' : '#e2e8f0';
-                const fg = dayCount === 0 ? '#e11d48' : '#0f172a';
-                html += `<td style="border: 1px solid #94a3b8; padding: 1px; background-color: ${bg}; color: ${fg};">${dayCount}</td>`;
-            }
-
-            html += `<td style="border: 1px solid #94a3b8; padding: 2px; background-color: #dbeafe; color: #1e3a8a;">${grandTotal}</td></tr>
-                    </tbody>
-                </table>
-                <div style="margin-top: 6px; font-size: 7px; color: #64748b; display: flex; justify-content: space-between;">
-                    <span>Позначення: [+] Доступний | [Ч] Чергування | [Н] Нічна зміна | [В] Вихідний | [Х] Хворий</span>
-                    <span>Згенеровано: ${new Date().toLocaleDateString('uk-UA')}</span>
-                </div>
-            `;
-
-            element.innerHTML = html;
-            document.body.appendChild(element);
-
-            const opt = {
-                margin: [4, 4, 4, 4],
-                filename: `Графік_чергувань_${monthName}_${currentYear}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, logging: false },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-            };
-
-            html2pdf().set(opt).from(element).save().then(() => {
-                document.body.removeChild(element);
-            }).catch(err => {
-                console.error("PDF generation error:", err);
-                if (element.parentNode) document.body.removeChild(element);
-            });
-        }
-
-        function exportDeptToPDF() {
-            closeExportModal();
-
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            const monthName = MONTH_NAMES_UA[currentMonth - 1];
-            const monthKey = getMonthKey();
-
-            const element = document.createElement('div');
-            element.className = 'pdf-export-container bg-white text-slate-900 p-3';
-            element.style.width = '1060px';
-
-            let html = `
-                <div style="text-align: center; margin-bottom: 6px;">
-                    <h2 style="font-size: 16px; font-weight: bold; color: #4338ca; margin: 0;">
-                        ЧЕРГУВАННЯ ПО КАФЕДРІ НА ${monthName.toUpperCase()} ${currentYear} РОКУ
-                    </h2>
-                    <p style="font-size: 9px; color: #475569; margin-top: 1px;">
-                        Кафедральний графік чергувань та контактні дані інтернів
-                    </p>
-                </div>
-                <table style="width: 100%; border-collapse: collapse; font-size: 8px; text-align: center; font-family: 'Inter', sans-serif;">
-                    <thead>
-                        <tr style="background-color: #3730a3; color: white;">
-                            <th style="border: 1px solid #334155; padding: 3px; width: 20px;">№</th>
-                            <th style="border: 1px solid #334155; padding: 3px; text-align: left; width: 160px;">ПІБ інтерна</th>
-                            <th style="border: 1px solid #334155; padding: 3px; text-align: left; width: 80px;">Телефон</th>
-            `;
-
-            for (let day = 1; day <= daysCount; day++) {
-                const isWknd = isWeekendDay(day);
-                const bg = isWknd ? '#be123c' : '#3730a3';
-                html += `<th style="border: 1px solid #334155; padding: 2px 1px; background-color: ${bg}; color: white; width: 22px;">${day}</th>`;
-            }
-
-            html += `
-                            <th style="border: 1px solid #334155; padding: 3px; width: 30px;">Змін</th>
-                        </tr>
-                        <tr style="background-color: #334155; color: #cbd5e1; font-size: 7px;">
-                            <th style="border: 1px solid #475569;" colspan="3"></th>
-            `;
-
-            for (let day = 1; day <= daysCount; day++) {
-                const wdName = UA_WEEKDAYS[getDayOfWeekIndex(day)];
-                const isWknd = isWeekendDay(day);
-                const bg = isWknd ? '#9f1239' : '#334155';
-                html += `<th style="border: 1px solid #475569; padding: 1px;">${wdName}</th>`;
-            }
-
-            html += `
-                            <th style="border: 1px solid #475569;"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            const currentDeptMatrix = deptMatrixData[monthKey] || {};
-
-            internsList.forEach((name, idx) => {
-                const rowData = currentDeptMatrix[idx] || {};
-                const bgRow = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
-                const phone = internPhones[name] || '';
-
-                let shifts = 0;
-                for (let d = 1; d <= daysCount; d++) {
-                    if (rowData[d] === 'К') shifts++;
-                }
-
-                html += `<tr style="background-color: ${bgRow};">
-                    <td style="border: 1px solid #cbd5e1; padding: 1px; font-weight: bold; color: #64748b;">${idx + 1}</td>
-                    <td style="border: 1px solid #cbd5e1; padding: 1px 3px; text-align: left; font-weight: 700; color: #1e293b;">${name}</td>
-                    <td style="border: 1px solid #cbd5e1; padding: 1px 3px; text-align: left; color: #475569;">${phone}</td>
-                `;
-
-                for (let day = 1; day <= daysCount; day++) {
-                    const val = rowData[day] || '';
-                    const isWknd = isWeekendDay(day);
-
-                    let cellBg = isWknd ? '#fef2f2' : bgRow;
-                    let cellColor = '#334155';
-                    let cellWeight = 'normal';
-
-                    if (val === 'К') { cellBg = '#4f46e5'; cellColor = '#ffffff'; cellWeight = 'bold'; }
-                    else if (val === '+') { cellBg = '#dcfce7'; cellColor = '#15803d'; cellWeight = 'bold'; }
-                    else if (val === 'Н') { cellBg = '#9333ea'; cellColor = '#ffffff'; cellWeight = 'bold'; }
-                    else if (val === 'В') { cellBg = '#fef3c7'; cellColor = '#92400e'; cellWeight = 'bold'; }
-                    else if (val === 'Х') { cellBg = '#fecdd3'; cellColor = '#9f1239'; cellWeight = 'bold'; }
-
-                    html += `<td style="border: 1px solid #cbd5e1; padding: 1px; background-color: ${cellBg}; color: ${cellColor}; font-weight: ${cellWeight};">${val}</td>`;
-                }
-
-                html += `<td style="border: 1px solid #cbd5e1; padding: 1px; font-weight: bold; color: #3730a3; background-color: #e0e7ff;">${shifts}</td></tr>`;
-            });
-
-            html += `
-                    <tr style="background-color: #e2e8f0; font-weight: bold;">
-                        <td style="border: 1px solid #94a3b8; padding: 2px;" colspan="3">Чергових по кафедрі на день:</td>
-            `;
-
-            let grandTotal = 0;
-            for (let day = 1; day <= daysCount; day++) {
-                let dayCount = 0;
-                internsList.forEach((_, idx) => {
-                    const v = (currentDeptMatrix[idx] || {})[day];
-                    if (v === 'К') dayCount++;
-                });
-                grandTotal += dayCount;
-                html += `<td style="border: 1px solid #94a3b8; padding: 1px; background-color: #e2e8f0; color: #0f172a;">${dayCount}</td>`;
-            }
-
-            html += `<td style="border: 1px solid #94a3b8; padding: 2px; background-color: #c7d2fe; color: #312e81;">${grandTotal}</td></tr>
-                    </tbody>
-                </table>
-                <div style="margin-top: 6px; font-size: 7px; color: #64748b; display: flex; justify-content: space-between;">
-                    <span>Позначення: [К] Черговий по кафедрі | [+] Доступний | [Н] Нічна зміна | [В] Вихідний | [Х] Хворий</span>
-                    <span>Згенеровано: ${new Date().toLocaleDateString('uk-UA')}</span>
-                </div>
-            `;
-
-            element.innerHTML = html;
-            document.body.appendChild(element);
-
-            const opt = {
-                margin: [4, 4, 4, 4],
-                filename: `Чергові_по_кафедрі_${monthName}_${currentYear}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, logging: false },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-            };
-
-            html2pdf().set(opt).from(element).save().then(() => {
-                document.body.removeChild(element);
-            }).catch(err => {
-                console.error("PDF generation error:", err);
-                if (element.parentNode) document.body.removeChild(element);
-            });
-        }
-
-        function exportToCSV() {
-            const daysCount = getDaysInMonth(currentYear, currentMonth);
-            const monthName = MONTH_NAMES_UA[currentMonth - 1];
-            const monthKey = getMonthKey();
-
-            let csv = '\uFEFF';
-            csv += `№;ПІБ інтерна (${monthName} ${currentYear});`;
-
-            for (let day = 1; day <= daysCount; day++) {
-                const wd = UA_WEEKDAYS[getDayOfWeekIndex(day)];
-                csv += `"${day} (${wd})";`;
-            }
-            csv += 'Всього змін\n';
-
-            internsList.forEach((name, idx) => {
-                csv += `${idx + 1};"${name}";`;
-                for (let day = 1; day <= daysCount; day++) {
-                    csv += `"${(matrixData[monthKey][idx] && matrixData[monthKey][idx][day]) || ''}";`;
-                }
-                csv += `${calculateInternShifts(idx)}\n`;
-            });
-
-            csv += `\nЧЕРГОВІ ПО КАФЕДРІ НА ${monthName.toUpperCase()} ${currentYear}\n`;
-            csv += `№;ПІБ інтерна;Телефон;`;
-            for (let day = 1; day <= daysCount; day++) {
-                const wd = UA_WEEKDAYS[getDayOfWeekIndex(day)];
-                csv += `"${day} (${wd})";`;
-            }
-            csv += 'Всього чергувань по кафедрі\n';
-
-            internsList.forEach((name, idx) => {
-                const phone = internPhones[name] || '';
-                csv += `${idx + 1};"${name}";"${phone}";`;
-                for (let day = 1; day <= daysCount; day++) {
-                    csv += `"${(deptMatrixData[monthKey][idx] && deptMatrixData[monthKey][idx][day]) || ''}";`;
-                }
-                csv += `${calculateInternDeptShifts(idx)}\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Графік_чергувань_${monthName}_${currentYear}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            closeExportModal();
-        }
-
-        window.onload = function() {
-            initData();
-            updateHeaderUI();
-            renderHeader();
-            renderTableBody();
-            renderDeptHeader();
-            renderDeptTableBody();
-            initToolPickers();
-            setupCellInteractions();
-            
-            // Auto detect mobile screen width to default to compact mode if needed
-            if (window.innerWidth < 640) {
-                isCompactNames = true;
-                const container = document.getElementById('matrix-table-container-wrapper');
-                const btnText = document.getElementById('compact-toggle-text');
-                if (container) container.classList.add('compact-mode');
-                if (btnText) btnText.textContent = 'Повні ПІБ';
-                updateDynamicLayout();
-                renderTableBody();
-                renderDeptTableBody();
-            }
+        return {
+          id: worker.id,
+          name: worker.name,
+          duty: worker.duty,
+          days: days
         };
-    </script>
+      });
+    }
+
+    function loadAllData() {
+      const stored = localStorage.getItem(STORAGE_KEY_V3);
+      if (stored) {
+        try {
+          allMonthsStore = JSON.parse(stored);
+        } catch (e) {
+          console.error("Storage parse error:", e);
+          allMonthsStore = {};
+        }
+      }
+
+      switchPeriod(currentYear, currentMonth, false);
+    }
+
+    function saveActiveMonthData() {
+      const key = getStoragePeriodKey(currentYear, currentMonth);
+      allMonthsStore[key] = scheduleData;
+      localStorage.setItem(STORAGE_KEY_V3, JSON.stringify(allMonthsStore));
+      showToast("Збережено", "✓");
+    }
+
+    function switchPeriod(year, month, shouldSaveCurrent = true) {
+      if (shouldSaveCurrent && scheduleData.length > 0) {
+        const prevKey = getStoragePeriodKey(currentYear, currentMonth);
+        allMonthsStore[prevKey] = scheduleData;
+        localStorage.setItem(STORAGE_KEY_V3, JSON.stringify(allMonthsStore));
+      }
+
+      currentYear = parseInt(year);
+      currentMonth = parseInt(month);
+
+      const daysInNewMonth = getDaysInMonth(currentYear, currentMonth);
+      if (currentSelectedDay > daysInNewMonth) {
+        currentSelectedDay = 1;
+      }
+
+      const key = getStoragePeriodKey(currentYear, currentMonth);
+      if (!allMonthsStore[key]) {
+        allMonthsStore[key] = createDefaultMonthData(currentYear, currentMonth);
+      }
+      scheduleData = allMonthsStore[key];
+
+      // Update Header Dropdown Values
+      document.getElementById('monthSelect').value = currentMonth;
+      document.getElementById('yearSelect').value = currentYear;
+      document.getElementById('currentPeriodBadge').textContent = `${daysInNewMonth} днів`;
+
+      renderAll();
+    }
+
+    function resetCurrentMonthToDefaults() {
+      const key = getStoragePeriodKey(currentYear, currentMonth);
+      allMonthsStore[key] = createDefaultMonthData(currentYear, currentMonth);
+      scheduleData = allMonthsStore[key];
+      saveActiveMonthData();
+      renderAll();
+      showToast(`Графік за ${MONTH_NAMES_UA[currentMonth]} ${currentYear} скинуто`, "↺");
+    }
+
+    function renderCardsView(filterText = '') {
+      const container = document.getElementById('viewCards');
+      container.innerHTML = '';
+
+      const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+      const term = filterText.trim().toLowerCase();
+      const filtered = scheduleData.filter(w => 
+        w.name.toLowerCase().includes(term) || (w.duty && w.duty.toLowerCase().includes(term))
+      );
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center bg-white rounded-2xl border border-slate-200">
+            <p class="text-slate-400 text-sm">Працівників за запитом "${filterText}" не знайдено</p>
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(worker => {
+        let vCount = 0;
+        let otherCount = 0;
+        for (let d = 1; d <= daysInMonth; d++) {
+          const val = worker.days[d] || '';
+          if (val === 'В') vCount++;
+          else if (val) otherCount++;
+        }
+
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200/90 space-y-3";
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                <h3 class="font-bold text-slate-800 text-base">${worker.name}</h3>
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800">
+                  ${vCount} вих.
+                </span>
+                ${otherCount > 0 ? `<span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">${otherCount} черг.</span>` : ''}
+              </div>
+              <div class="flex items-center gap-1.5 mt-0.5 text-xs text-slate-500">
+                <span class="text-slate-400">Черговий:</span>
+                <span class="font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md inline-block">${worker.duty || 'Не призначено'}</span>
+              </div>
+            </div>
+            
+            <button class="edit-worker-btn p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-slate-100" data-id="${worker.id}">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-7 sm:grid-cols-11 md:grid-cols-16 gap-1 pt-1 border-t border-slate-100">
+            ${generateDaysPillsHTML(worker, daysInMonth)}
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+
+      container.querySelectorAll('.day-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const wId = btn.getAttribute('data-worker-id');
+          const day = parseInt(btn.getAttribute('data-day'));
+          openEditModal(wId, day);
+        });
+      });
+
+      container.querySelectorAll('.edit-worker-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const wId = btn.getAttribute('data-id');
+          openEditModal(wId, 1);
+        });
+      });
+    }
+
+    function generateDaysPillsHTML(worker, daysInMonth) {
+      let html = '';
+      for (let day = 1; day <= daysInMonth; day++) {
+        const val = (worker.days[day] || '').trim();
+        const dow = getDayOfWeek(currentYear, currentMonth, day);
+        const weekend = isWeekend(currentYear, currentMonth, day);
+        
+        let colorClass = 'bg-slate-50 text-slate-700 border-slate-200';
+        let badgeContent = val || `<span class="opacity-30">${dow}</span>`;
+
+        if (val === 'В') {
+          colorClass = 'bg-amber-100 border-amber-300 text-amber-900 font-bold';
+          badgeContent = 'В';
+        } else if (val === 'Ч') {
+          colorClass = 'bg-emerald-100 border-emerald-300 text-emerald-900 font-bold';
+          badgeContent = 'Ч';
+        } else if (val) {
+          colorClass = 'bg-indigo-100 border-indigo-300 text-indigo-900 font-bold';
+          badgeContent = val;
+        } else if (weekend) {
+          colorClass = 'bg-slate-100 text-slate-400 border-slate-200';
+        }
+
+        html += `
+          <button class="day-pill touch-press flex flex-col items-center justify-center p-1 rounded-xl border text-[11px] h-11 transition-all ${colorClass}"
+            data-worker-id="${worker.id}" data-day="${day}">
+            <span class="text-[9px] opacity-60 leading-none">${day}</span>
+            <span class="text-xs font-semibold leading-tight">${badgeContent}</span>
+          </button>
+        `;
+      }
+      return html;
+    }
+
+    function renderCalendarView() {
+      const slider = document.getElementById('daySlider');
+      slider.innerHTML = '';
+      const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dow = getDayOfWeek(currentYear, currentMonth, day);
+        const weekend = isWeekend(currentYear, currentMonth, day);
+        const isSelected = day === currentSelectedDay;
+
+        const btn = document.createElement('button');
+        btn.className = `touch-press flex-shrink-0 w-12 py-2 rounded-2xl flex flex-col items-center justify-center text-xs transition-all ${
+          isSelected 
+            ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-200 scale-105' 
+            : weekend 
+              ? 'bg-slate-100 text-rose-600 font-medium hover:bg-slate-200' 
+              : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+        }`;
+        btn.innerHTML = `
+          <span class="text-[10px] opacity-75">${dow}</span>
+          <span class="text-sm font-extrabold">${day}</span>
+        `;
+        btn.addEventListener('click', () => {
+          currentSelectedDay = day;
+          renderCalendarView();
+        });
+        slider.appendChild(btn);
+      }
+
+      const dow = getDayOfWeek(currentYear, currentMonth, currentSelectedDay);
+      document.getElementById('selectedDayLabel').textContent = `${currentSelectedDay} ${MONTH_NAMES_UA[currentMonth]} ${currentYear} (${dow})`;
+
+      const list = document.getElementById('dayWorkersList');
+      list.innerHTML = '';
+
+      scheduleData.forEach(worker => {
+        const val = worker.days[currentSelectedDay] || '';
+        const item = document.createElement('div');
+        item.className = "bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200 flex items-center justify-between";
+
+        let statusBadge = `<span class="text-slate-400 text-xs">— не призначено</span>`;
+        if (val === 'В') {
+          statusBadge = `<span class="px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-xl text-xs flex items-center gap-1">В — вихідний</span>`;
+        } else if (val === 'Ч') {
+          statusBadge = `<span class="px-3 py-1 bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold rounded-xl text-xs flex items-center gap-1">Ч — чергування</span>`;
+        } else if (val) {
+          statusBadge = `<span class="px-3 py-1 bg-indigo-100 text-indigo-900 border border-indigo-300 font-bold rounded-xl text-xs">${val}</span>`;
+        }
+
+        item.innerHTML = `
+          <div>
+            <h4 class="font-bold text-slate-800 text-sm">${worker.name}</h4>
+            <p class="text-xs text-slate-500">Черговий: <span class="text-indigo-600 font-medium">${worker.duty}</span></p>
+          </div>
+          <div class="flex items-center gap-2">
+            ${statusBadge}
+            <button class="touch-press p-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 text-xs font-semibold"
+              onclick="openEditModal('${worker.id}', ${currentSelectedDay})">
+              Змінити
+            </button>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    function renderTableView() {
+      const theadRow = document.querySelector('#viewTable thead tr');
+      while (theadRow.children.length > 2) {
+        theadRow.removeChild(theadRow.lastChild);
+      }
+
+      const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const th = document.createElement('th');
+        const dow = getDayOfWeek(currentYear, currentMonth, day);
+        const weekend = isWeekend(currentYear, currentMonth, day);
+        th.className = `px-2 py-2 min-w-[38px] text-[11px] border-r border-slate-200 ${weekend ? 'bg-slate-200/80 text-rose-600 font-bold' : 'bg-slate-100 text-slate-700'}`;
+        th.innerHTML = `<div>${day}</div><div class="text-[9px] opacity-75">${dow}</div>`;
+        theadRow.appendChild(th);
+      }
+
+      // Add a summary total column header
+      const thTotal = document.createElement('th');
+      thTotal.className = "px-2 py-2 min-w-[55px] text-[11px] border-r border-slate-200 bg-amber-50 text-amber-900 font-bold";
+      thTotal.textContent = "Всього В";
+      theadRow.appendChild(thTotal);
+
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+
+      scheduleData.forEach((worker, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = idx % 2 === 0 ? 'bg-white hover:bg-slate-50' : 'bg-slate-50/60 hover:bg-slate-100';
+
+        let rowHTML = `
+          <td class="sticky-col ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'} px-3 py-2 text-left font-semibold text-slate-800 border-r border-b border-slate-200 whitespace-nowrap shadow-sm text-xs">
+            ${worker.name}
+          </td>
+          <td class="px-2 py-2 text-left text-slate-600 border-r border-b border-slate-200 whitespace-nowrap text-[11px] bg-slate-50/50">
+            ${worker.duty}
+          </td>
+        `;
+
+        let vCount = 0;
+        for (let day = 1; day <= daysInMonth; day++) {
+          const val = worker.days[day] || '';
+          if (val === 'В') vCount++;
+          let bg = '';
+          if (val === 'В') bg = 'bg-amber-100 text-amber-900 font-bold';
+          else if (val === 'Ч') bg = 'bg-emerald-100 text-emerald-900 font-bold';
+          else if (val) bg = 'bg-indigo-100 text-indigo-900 font-semibold';
+
+          rowHTML += `
+            <td class="border-r border-b border-slate-200 p-0 text-center cursor-pointer hover:bg-indigo-50/50 transition-colors ${bg}"
+                onclick="openEditModal('${worker.id}', ${day})">
+              <div class="w-full h-8 flex items-center justify-center font-medium">
+                ${val}
+              </div>
+            </td>
+          `;
+        }
+
+        rowHTML += `
+          <td class="border-r border-b border-slate-200 p-1 text-center font-bold text-amber-900 bg-amber-50/60 text-xs">
+            ${vCount}
+          </td>
+        `;
+
+        tr.innerHTML = rowHTML;
+        tbody.appendChild(tr);
+      });
+    }
+
+    const editModal = document.getElementById('editModal');
+    const modalContainer = document.getElementById('modalContainer');
+
+    function openEditModal(workerId, day) {
+      editingContext = { workerId, day };
+      const worker = scheduleData.find(w => w.id === workerId);
+      if (!worker) return;
+
+      const dow = getDayOfWeek(currentYear, currentMonth, day);
+      const nameElem = document.getElementById('modalWorkerName');
+      if (nameElem) nameElem.textContent = worker.name;
+      const daySubtextElem = document.getElementById('modalDaySubtext');
+      if (daySubtextElem) daySubtextElem.textContent = `${day} ${MONTH_NAMES_UA[currentMonth]} ${currentYear} (${dow})`;
+      const dutyElem = document.getElementById('modalDutyInput');
+      if (dutyElem) dutyElem.value = worker.duty || '';
+      const customElem = document.getElementById('customInput');
+      if (customElem) customElem.value = worker.days[day] || '';
+
+      if (editModal) editModal.classList.remove('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        if (modalContainer) modalContainer.classList.remove('translate-y-full');
+      }, 10);
+    }
+    window.openEditModal = openEditModal;
+
+    function closeEditModal() {
+      if (modalContainer) modalContainer.classList.add('translate-y-full');
+      setTimeout(() => {
+        if (editModal) editModal.classList.add('opacity-0', 'pointer-events-none');
+      }, 150);
+    }
+
+    function applyValueToCell(val) {
+      const { workerId, day } = editingContext;
+      if (!workerId || !day) return;
+
+      const worker = scheduleData.find(w => w.id === workerId);
+      if (worker) {
+        if (val === '') {
+          delete worker.days[day];
+        } else {
+          worker.days[day] = val;
+        }
+        saveActiveMonthData();
+        renderAll();
+      }
+      closeEditModal();
+    }
+
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+    if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeEditModal);
+
+    if (editModal) {
+      editModal.addEventListener('click', (e) => {
+        if (e.target === editModal) closeEditModal();
+      });
+    }
+
+    document.querySelectorAll('[data-quick]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.getAttribute('data-quick');
+        applyValueToCell(val);
+      });
+    });
+
+    const applyCustomBtn = document.getElementById('applyCustomBtn');
+    if (applyCustomBtn) {
+      applyCustomBtn.addEventListener('click', () => {
+        const customInput = document.getElementById('customInput');
+        const val = customInput ? customInput.value.trim() : '';
+        applyValueToCell(val);
+      });
+    }
+
+    const saveDutyBtn = document.getElementById('saveDutyBtn');
+    if (saveDutyBtn) {
+      saveDutyBtn.addEventListener('click', () => {
+        const { workerId } = editingContext;
+        const worker = scheduleData.find(w => w.id === workerId);
+        const modalDutyInput = document.getElementById('modalDutyInput');
+        if (worker && modalDutyInput) {
+          worker.duty = modalDutyInput.value.trim();
+          saveActiveMonthData();
+          renderAll();
+          showToast("Чергового оновлено", "✓");
+        }
+      });
+    }
+
+    // Automation: set all Tue & Thu to 'В' for current month
+    const btnSetTueThu = document.getElementById('btnSetTueThu');
+    if (btnSetTueThu) {
+      btnSetTueThu.addEventListener('click', () => {
+        const { workerId } = editingContext;
+        const worker = scheduleData.find(w => w.id === workerId);
+        if (worker) {
+          const tueThuDays = getTueThuDays(currentYear, currentMonth);
+          tueThuDays.forEach(d => {
+            worker.days[d] = 'В';
+          });
+          saveActiveMonthData();
+          renderAll();
+          closeEditModal();
+          showToast("Встановлено 'В' по вівторках і четвергах", "✓");
+        }
+      });
+    }
+
+    const btnClearAllWorker = document.getElementById('btnClearAllWorker');
+    if (btnClearAllWorker) {
+      btnClearAllWorker.addEventListener('click', () => {
+        const { workerId } = editingContext;
+        const worker = scheduleData.find(w => w.id === workerId);
+        if (worker) {
+          worker.days = {};
+          saveActiveMonthData();
+          renderAll();
+          closeEditModal();
+          showToast("Дні очищено", "✓");
+        }
+      });
+    }
+
+    document.getElementById('btnExportExcel').addEventListener('click', () => {
+      try {
+        const monthName = MONTH_NAMES_UA[currentMonth];
+        const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+
+        // Header Title Rows
+        const sheetData = [
+          [`ГРАФІК ЧЕРГУВАННЯ ПРАЦІВНИКІВ НА ${monthName.toUpperCase()} ${currentYear} РОКУ`],
+          [`Сформовано: ${new Date().toLocaleDateString('uk-UA')}`],
+          [] // empty row
+        ];
+
+        // Column Titles row
+        const tableHeader = ["№", "Працівник", "Черговий / Заміна"];
+        for (let d = 1; d <= daysInMonth; d++) {
+          const dow = getDayOfWeek(currentYear, currentMonth, d);
+          tableHeader.push(`${d} (${dow})`);
+        }
+        tableHeader.push("Всього вихідних (В)");
+        sheetData.push(tableHeader);
+
+        // Worker Data Rows
+        scheduleData.forEach((worker, idx) => {
+          let vTotal = 0;
+          const row = [idx + 1, worker.name, worker.duty || ""];
+          for (let d = 1; d <= daysInMonth; d++) {
+            const val = worker.days[d] || "";
+            if (val === "В") vTotal++;
+            row.push(val);
+          }
+          row.push(vTotal);
+          sheetData.push(row);
+        });
+
+        // Legend row at bottom
+        sheetData.push([]);
+        sheetData.push(["Умовні позначення:", "В — вихідний день, Ч — чергування"]);
+
+        const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+        // Format column widths nicely
+        const colWidths = [
+          { wch: 5 },   // №
+          { wch: 20 },  // Worker name
+          { wch: 32 }   // Duty replacement
+        ];
+        for (let d = 1; d <= daysInMonth; d++) {
+          colWidths.push({ wch: 5.5 }); // Days columns
+        }
+        colWidths.push({ wch: 18 }); // Total V column
+        ws['!cols'] = colWidths;
+
+        // Merge title header cells across table width
+        const totalCols = daysInMonth + 3;
+        ws['!merges'] = [
+          { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols } },
+          { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols } }
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, `${monthName}_${currentYear}`);
+        
+        const fileName = `Графік_чергування_${monthName}_${currentYear}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        showToast("Excel файл завантажено", "📥");
+      } catch (err) {
+        console.error("Excel Export Error:", err);
+        showToast("Помилка експорту Excel", "✕");
+      }
+    });
+
+    document.getElementById('btnExportPdf').addEventListener('click', () => {
+      try {
+        const monthName = MONTH_NAMES_UA[currentMonth];
+        const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+
+        // Update PDF Metadata
+        document.getElementById('pdfPeriodTitle').textContent = `${monthName} ${currentYear} року`;
+        document.getElementById('pdfGeneratedDate').textContent = `Дата: ${new Date().toLocaleDateString('uk-UA')} ${new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
+
+        // Build clean PDF Table HTML
+        let tableHtml = `
+          <table style="width: 100%; border-collapse: collapse; font-size: 9px; text-align: center;">
+            <thead>
+              <tr style="background-color: #f1f5f9; color: #1e293b; border-bottom: 2px solid #cbd5e1;">
+                <th style="padding: 5px 3px; border: 1px solid #cbd5e1; width: 22px;">№</th>
+                <th style="padding: 5px 6px; border: 1px solid #cbd5e1; text-align: left; width: 110px;">Працівник</th>
+                <th style="padding: 5px 6px; border: 1px solid #cbd5e1; text-align: left; width: 150px;">Черговий / Заміна</th>
+        `;
+
+        for (let d = 1; d <= daysInMonth; d++) {
+          const dow = getDayOfWeek(currentYear, currentMonth, d);
+          const weekend = isWeekend(currentYear, currentMonth, d);
+          tableHtml += `
+            <th style="padding: 4px 1px; border: 1px solid #cbd5e1; ${weekend ? 'background-color: #fee2e2; color: #991b1b; font-weight: bold;' : ''}">
+              <div>${d}</div>
+              <div style="font-size: 7px; opacity: 0.8;">${dow}</div>
+            </th>
+          `;
+        }
+
+        tableHtml += `
+                <th style="padding: 5px 3px; border: 1px solid #cbd5e1; background-color: #fef3c7; color: #92400e; font-weight: bold; width: 40px;">Вих. (В)</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        scheduleData.forEach((worker, idx) => {
+          let vCount = 0;
+          const bgRow = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
+          tableHtml += `
+            <tr style="background-color: ${bgRow};">
+              <td style="padding: 4px 2px; border: 1px solid #cbd5e1; font-weight: 500;">${idx + 1}</td>
+              <td style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left; font-weight: 600; color: #0f172a;">${worker.name}</td>
+              <td style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left; color: #334155; font-size: 8.5px;">${worker.duty || ''}</td>
+          `;
+
+          for (let d = 1; d <= daysInMonth; d++) {
+            const val = worker.days[d] || '';
+            if (val === 'В') vCount++;
+            let cellBg = '';
+            let cellColor = '#0f172a';
+            if (val === 'В') {
+              cellBg = 'background-color: #fef3c7;';
+              cellColor = '#92400e; font-weight: bold;';
+            } else if (val === 'Ч') {
+              cellBg = 'background-color: #d1fae5;';
+              cellColor = '#065f46; font-weight: bold;';
+            }
+
+            tableHtml += `
+              <td style="padding: 3px 0; border: 1px solid #cbd5e1; ${cellBg} color: ${cellColor};">
+                ${val}
+              </td>
+            `;
+          }
+
+          tableHtml += `
+              <td style="padding: 4px 2px; border: 1px solid #cbd5e1; background-color: #fffbeb; font-weight: bold; color: #92400e;">${vCount}</td>
+            </tr>
+          `;
+        });
+
+        tableHtml += `
+            </tbody>
+          </table>
+        `;
+
+        document.getElementById('pdfTableTarget').innerHTML = tableHtml;
+
+        // Render PDF via html2pdf
+        showToast("Створення PDF...", "⏳");
+        const element = document.getElementById('pdfPrintContent');
+        const opt = {
+          margin: [8, 8, 8, 8],
+          filename: `Графік_чергування_${monthName}_${currentYear}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, logging: false },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+          showToast("PDF успішно завантажено!", "📄");
+        }).catch(err => {
+          console.error("html2pdf error:", err);
+          showToast("Помилка генерації PDF", "✕");
+        });
+
+      } catch (err) {
+        console.error("PDF error:", err);
+        showToast("Помилка експорту PDF", "✕");
+      }
+    });
+
+    document.getElementById('btnShare').addEventListener('click', () => {
+      const monthName = MONTH_NAMES_UA[currentMonth];
+      let text = `📋 ГРАФІК ЧЕРГУВАНЬ — ${monthName.toUpperCase()} ${currentYear}\n\n`;
+      scheduleData.forEach(w => {
+        text += `👤 ${w.name} (черговий: ${w.duty})\n`;
+        const vDays = [];
+        const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+        for (let d = 1; d <= daysInMonth; d++) {
+          if (w.days[d] === 'В') vDays.push(d);
+        }
+        if (vDays.length > 0) {
+          text += `   Вихідні (В): ${vDays.join(', ')}\n`;
+        }
+      });
+      text += "\nВ - вихідний день";
+
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast("Скопійовано для Viber / Telegram!", "📋");
+      } catch (err) {
+        showToast("Не вдалося скопіювати", "✕");
+      }
+      document.body.removeChild(textArea);
+    });
+
+    const statsModal = document.getElementById('statsModal');
+    function showStatistics() {
+      const list = document.getElementById('statsList');
+      list.innerHTML = '';
+      const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+
+      scheduleData.forEach(w => {
+        let vCount = 0;
+        let cCount = 0;
+
+        for (let d = 1; d <= daysInMonth; d++) {
+          const val = w.days[d] || '';
+          if (val === 'В') vCount++;
+          else if (val === 'Ч') cCount++;
+        }
+
+        const div = document.createElement('div');
+        div.className = "p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs";
+        div.innerHTML = `
+          <div>
+            <div class="font-bold text-slate-800 text-sm">${w.name}</div>
+            <div class="text-[11px] text-slate-500">Черговий: ${w.duty}</div>
+          </div>
+          <div class="flex items-center gap-2 text-right">
+            <div class="bg-amber-100 text-amber-900 px-2 py-1 rounded-lg font-bold">
+              ${vCount} вих. (В)
+            </div>
+            ${cCount > 0 ? `<div class="bg-emerald-100 text-emerald-900 px-2 py-1 rounded-lg font-bold">${cCount} черг. (Ч)</div>` : ''}
+          </div>
+        `;
+        list.appendChild(div);
+      });
+
+      statsModal.classList.remove('opacity-0', 'pointer-events-none');
+    }
+
+    document.getElementById('btnStatsModal').addEventListener('click', showStatistics);
+    document.getElementById('closeStatsModal').addEventListener('click', () => {
+      statsModal.classList.add('opacity-0', 'pointer-events-none');
+    });
+    document.getElementById('statsCloseBottom').addEventListener('click', () => {
+      statsModal.classList.add('opacity-0', 'pointer-events-none');
+    });
+
+    function renderAll() {
+      const searchVal = document.getElementById('searchInput').value;
+      if (currentActiveView === 'cards') {
+        renderCardsView(searchVal);
+      } else if (currentActiveView === 'calendar') {
+        renderCalendarView();
+      } else if (currentActiveView === 'table') {
+        renderTableView();
+      }
+    }
+
+    // Month Selector Change
+    document.getElementById('monthSelect').addEventListener('change', (e) => {
+      switchPeriod(currentYear, e.target.value);
+    });
+
+    // Year Selector Change
+    document.getElementById('yearSelect').addEventListener('change', (e) => {
+      switchPeriod(e.target.value, currentMonth);
+    });
+
+    // Previous Month Button
+    document.getElementById('btnPrevMonth').addEventListener('click', () => {
+      let m = currentMonth - 1;
+      let y = currentYear;
+      if (m < 0) {
+        m = 11;
+        y--;
+      }
+      switchPeriod(y, m);
+    });
+
+    // Next Month Button
+    document.getElementById('btnNextMonth').addEventListener('click', () => {
+      let m = currentMonth + 1;
+      let y = currentYear;
+      if (m > 11) {
+        m = 0;
+        y++;
+      }
+      switchPeriod(y, m);
+    });
+
+    // View Tabs Switcher
+    document.querySelectorAll('.view-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const view = btn.getAttribute('data-view');
+        currentActiveView = view;
+
+        document.querySelectorAll('.view-btn').forEach(b => {
+          b.className = "view-btn px-3 py-1.5 rounded-lg font-medium transition-all text-indigo-200 hover:text-white flex items-center gap-1.5";
+        });
+        btn.className = "view-btn px-3 py-1.5 rounded-lg font-medium transition-all bg-white text-indigo-900 shadow-sm flex items-center gap-1.5";
+
+        document.getElementById('viewCards').classList.toggle('hidden', view !== 'cards');
+        document.getElementById('viewCalendar').classList.toggle('hidden', view !== 'calendar');
+        document.getElementById('viewTable').classList.toggle('hidden', view !== 'table');
+
+        renderAll();
+      });
+    });
+
+    // Search input listener
+    const searchInput = document.getElementById('searchInput');
+    const clearSearch = document.getElementById('clearSearch');
+
+    searchInput.addEventListener('input', (e) => {
+      const val = e.target.value;
+      clearSearch.classList.toggle('hidden', !val);
+      renderCardsView(val);
+    });
+
+    clearSearch.addEventListener('click', () => {
+      searchInput.value = '';
+      clearSearch.classList.add('hidden');
+      renderCardsView();
+    });
+
+    document.getElementById('btnResetDefaults').addEventListener('click', () => {
+      resetCurrentMonthToDefaults();
+    });
+
+    let toastTimer = null;
+    function showToast(msg, icon = "✓") {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      document.getElementById('toastIcon').textContent = icon;
+
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 2500);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadAllData();
+    });
+  </script>
 </body>
 </html>
